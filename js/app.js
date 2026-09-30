@@ -11,7 +11,7 @@ async function type(t, c = '') { const d = document.createElement('div'); d.clas
 // ---- live state ----
 function bar() { if (st) $('#bar').textContent = `${LABEL[st.status]} | ${fmt(st.elapsedMs)} | ${st.players} online`; boardUI(); }
 function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board && st.board.length ? '<b>LEADERBOARD</b><br>' + st.board.map(x => `#${x.rank} ${esc(x.nick)} ${fmt(x.ms)}`).join('<br>') : ''; }
-const MSG = { running: '>> EVENT STARTED. Systems unlocked. submit using "submit <code>"; for hints type "hints" ', paused: '>> EVENT PAUSED.', ended: '>> EVENT ENDED.', waiting: '>> EVENT RESET. Awaiting start.' };
+const MSG = { running: '>> EVENT STARTED. Systems unlocked.', paused: '>> EVENT PAUSED.', ended: '>> EVENT ENDED.', waiting: '>> EVENT RESET. Awaiting start.' };
 const es = new EventSource('/api/stream');
 es.addEventListener('state', e => {
   const o = st; st = JSON.parse(e.data); bar();
@@ -115,7 +115,7 @@ function win(j) {
 // ---- intro ----
 (async () => {
   await type('HACKME // cybersecurity awareness exercise');
-  await type('All people, sites and photos are fictional and created for this exercise.', 'dim');
+  await type('All people, sites and photos are fictional and created for this exercise. submit using "submit <code>" for hints type "hints" ', 'dim');
   await type(nick ? `Welcome back, ${nick}. Type "help".` : 'Enter your callsign (nickname):');
   inp.focus();
 })();
