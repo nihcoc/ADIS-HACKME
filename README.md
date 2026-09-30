@@ -66,3 +66,5 @@ Then: `sudo certbot --nginx -d example.com` and set `COOKIE_SECURE=true`.
 docker build -t breach-protocol .
 docker run -d -p 3000:3000 --env-file .env -v breach-data:/app/data breach-protocol
 ```
+
+By Alfred for NeuralNex
