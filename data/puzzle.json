@@ -1,9 +1,9 @@
 {
-  "person": { "name": "Paulose Kuttichan Paaraparambil", "age": 33, "born": 1992, "location": "New York City" },
+  "person": { "name": "Paulose Kuttichan Paaraparambil", "age": 33, "location": "New York City" },
   "grammie": {
     "username": "paulose.kp",
     "avatar": "/assets/profile/avatar.jpg",
-    "bio": ".Thrissur gadi🐘🐘🐘 . India🤝Isreal🤝USA",
+    "bio": ".Thrissur gadi🐘🐘🐘 . India🤝Isreal🤝USA I love my mathi💖💖🐕",
     "followers": 50,
     "following": 2003,
     "posts": [
