@@ -75,3 +75,7 @@ pre.sub{border:1px dashed var(--d);padding:10px;margin:0 0 8px;white-space:pre-w
 .lbt{width:100%;border-collapse:collapse;margin:8px 0 4px}
 .lbt th,.lbt td{border-bottom:1px solid var(--d);padding:4px 8px;text-align:left}
 .lbt tr:nth-child(2){color:#ffd34d}
+
+.brand{display:flex;flex-direction:column;gap:2px}
+.org{font-size:11px;letter-spacing:2px;color:var(--d)}
+footer{text-align:center;font-size:10px;color:var(--d);padding:6px 8px 10px;opacity:.85}
