@@ -71,3 +71,7 @@ pre.sub{border:1px dashed var(--d);padding:10px;margin:0 0 8px;white-space:pre-w
 #hp h3{margin:0 0 8px;color:#ffd34d}#hp p{color:#fff;font-size:16px;margin:0 0 14px}
 #clues{border:1px solid var(--d);padding:6px 12px;margin-bottom:10px}
 #clues ul{margin:4px 0;padding-left:20px}
+
+.lbt{width:100%;border-collapse:collapse;margin:8px 0 4px}
+.lbt th,.lbt td{border-bottom:1px solid var(--d);padding:4px 8px;text-align:left}
+.lbt tr:nth-child(2){color:#ffd34d}

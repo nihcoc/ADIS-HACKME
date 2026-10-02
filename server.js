@@ -15,6 +15,7 @@ const HINTS = [
 ];
 const parseTimes = s => { const a = String(s).split(',').map(Number); return a.length === 3 && a.every(n => isFinite(n) && n >= 0 && n <= 600) ? a : null; };
 
+const LIMIT = Math.max(1, parseInt(E.AUTO_END_AFTER, 10) || 3); // game auto-ends after this many solvers
 // ---- state (memory + JSON file) ----
 let S = { status: 'waiting', accum: 0, since: null, times: parseTimes(E.HINT_TIMES_MINUTES) || [10, 20, 30], board: false, solvers: [] };
 try { Object.assign(S, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch {}
@@ -26,7 +27,7 @@ const pc = new Set(), ac = new Set();
 function snap(admin) {
   const el = elapsed(), hs = released(), next = S.times.map(t => t * 6e4).find(t => t > el);
   const s = { status: S.status, elapsedMs: el, hints: hs, nextHintMs: S.status !== 'waiting' && next !== undefined ? next - el : null,
-    players: pc.size, first: S.solvers.length ? S.solvers[0].ms : null, board: S.board ? S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, ms: x.ms })) : null };
+    players: pc.size, limit: LIMIT, first: S.solvers.length ? S.solvers[0].ms : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, ms: x.ms })) : null };
   if (admin) Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, ms: x.ms, at: x.at })), times: S.times, boardEnabled: S.board, hintsReleased: hs.length });
   return s;
 }
@@ -71,7 +72,9 @@ app.post('/api/submit', subLimit, (req, res) => {
   if (S.status !== 'running') return res.status(403).json({ error: 'EVENT NOT ACTIVE' });
   if (S.solvers.some(x => x.pid === req.pid)) return res.status(409).json({ error: 'ALREADY SOLVED' });
   if (eq(code.trim(), FINAL_CODE)) {
-    const ms = elapsed(); S.solvers.push({ nick, ms, at: new Date().toISOString(), pid: req.pid }); save(); broadcast();
+    const ms = elapsed(); S.solvers.push({ nick, ms, at: new Date().toISOString(), pid: req.pid });
+    if (S.solvers.length >= LIMIT && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
+    save(); broadcast();
     return res.json({ ok: true, ms, rank: S.solvers.length });
   }
   res.status(401).json({ error: 'ACCESS DENIED' });

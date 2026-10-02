@@ -2,7 +2,7 @@ const $ = s => document.querySelector(s), out = $('#out'), inp = $('#in');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = ms => { const s = Math.floor(ms / 1000); return [s / 3600 | 0, (s / 60) % 60 | 0, s % 60].map(n => String(n).padStart(2, '0')).join(':'); };
 const LABEL = { waiting: 'EVENT NOT STARTED', running: 'EVENT LIVE', paused: 'EVENT PAUSED', ended: 'EVENT ENDED' };
-let st = null, puz = null, solved = false, nick = sessionStorage.getItem('nick') || '', rainT;
+let st = null, puz = null, solved = false, nick = sessionStorage.getItem('nick') || '', rainT, winning = false;
 
 function log(t, c = '') { const d = document.createElement('div'); d.className = c; d.textContent = t; out.appendChild(d); out.scrollTop = out.scrollHeight; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -29,7 +29,8 @@ es.addEventListener('state', e => {
   if (o && o.status !== st.status) log(MSG[st.status], st.status === 'waiting' || st.status === 'ended' ? 'err' : 'ok');
   if (o) st.hints.filter(h => !o.hints.some(x => x.n === h.n)).forEach(h => { log(`[HINT ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
   if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)}${st.board && st.board[0] ? ' by ' + st.board[0].nick : ''}. The race is on.`, 'ok');
-  if (st.status === 'waiting') { puz = null; solved = false; waiting(); }
+  if (st.status === 'ended' && (!o || o.status !== 'ended')) showFinal();
+  if (st.status === 'waiting') { puz = null; solved = false; $('#win').hidden = true; waiting(); }
   else if (!puz) load();
 });
 async function load() {
@@ -90,6 +91,7 @@ function waiting() {
     <li>When it starts, three fictional public profiles unlock: Grammie, Linkout and Hooked.</li>
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
+    <li>The event ends automatically once the first ${st.limit || 3} players solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
     <li>Hints unlock for everyone at fixed times after the start. Type <b>hints</b> to read them.</li>
     <li>The first correct submission is announced live to all players.</li>
     <li>Play fair: do not share answers, and do not attack the server or any real person or account.</li>
@@ -143,17 +145,26 @@ inp.addEventListener('keydown', async e => {
 });
 
 // ---- victory ----
+const LESSON = `<h3>WHAT THIS ATTACK TEACHES</h3><p>Publicly available information can be combined to make passwords predictable. Pet names, birth and graduation years, schools, employers, locations, hobbies, family names, relationships and social-media posts each look harmless alone, but together they produce useful guesses. A pattern like <i>pet name + meaningful year + common symbol</i> is easy to predict. This exercise shows why to avoid such patterns. Never try this against real people or accounts.</p>
+    <h3>TOP 5 SECURITY TIPS</h3><ol><li>Don't use personal information in passwords.</li><li>Avoid combining pet names, dates, school information, or other public details.</li><li>Assume information posted publicly can be collected and correlated.</li><li>Use long, unique, randomly generated passwords.</li><li>Use MFA or passkeys whenever available.</li></ol><h3>PRECAUTIONS</h3><ul><li>Review what your public profiles reveal: pet names, school and graduation years, employers, locations and hobbies.</li><li>Tighten privacy settings and delete old posts that give away personal details.</li><li>Never reuse a password. Keep unique ones in a password manager.</li><li>Avoid security questions whose answers can be found online.</li><li>Turn on MFA or passkeys for email, banking and social accounts.</li><li>Never try this against real people or accounts.</li></ul>`;
+function showFinal() {
+  if (winning) return;
+  const w = $('#win'); w.hidden = false;
+  const rows = (st.board || []).map(x => `<tr><td>#${x.rank}</td><td>${esc(x.nick)}</td><td>${fmt(x.ms)}</td></tr>`).join('') || '<tr><td colspan="3">No solvers</td></tr>';
+  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final leaderboard:</p>
+  <table class="lbt"><tr><th>RANK</th><th>NICKNAME</th><th>TIME TAKEN</th></tr>${rows}</table>${LESSON}<button id="cl">CLOSE</button></div>`;
+  $('#cl').addEventListener('click', () => { w.hidden = true; });
+}
 function win(j) {
-  solved = true; const cv = $('#rain'); cv.hidden = false; cv.width = innerWidth; cv.height = innerHeight;
+  solved = true; winning = true; const cv = $('#rain'); cv.hidden = false; cv.width = innerWidth; cv.height = innerHeight;
   const x = cv.getContext('2d'), cols = Array(Math.ceil(cv.width / 16)).fill(0);
   rainT = setInterval(() => { x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(0, 0, cv.width, cv.height); x.fillStyle = '#00ff66'; x.font = '16px monospace';
     cols.forEach((y, i) => { x.fillText(String.fromCharCode(0x30A0 + Math.random() * 96), i * 16, y * 16); cols[i] = y * 16 > cv.height && Math.random() > .975 ? 0 : y + 1; }); }, 50);
   setTimeout(() => {
     const w = $('#win'); w.hidden = false;
     w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>Finishing time: <b>${fmt(j.ms)}</b> &nbsp; Rank: <b>#${j.rank}</b></p>
-    <h3>WHAT THIS ATTACK TEACHES</h3><p>Publicly available information can be combined to make passwords predictable. Pet names, birth and graduation years, schools, employers, locations, hobbies, family names, relationships and social-media posts each look harmless alone, but together they produce useful guesses. A pattern like <i>pet name + meaningful year + common symbol</i> is easy to predict. This exercise shows why to avoid such patterns. Never try this against real people or accounts.</p>
-    <h3>TOP 5 SECURITY TIPS</h3><ol><li>Don't use personal information in passwords.</li><li>Avoid combining pet names, dates, school information, or other public details.</li><li>Assume information posted publicly can be collected and correlated.</li><li>Use long, unique, randomly generated passwords.</li><li>Use MFA or passkeys whenever available.</li></ol><button id="cl">CLOSE</button></div>`;
-    $('#cl').addEventListener('click', () => { w.hidden = true; clearInterval(rainT); cv.hidden = true; });
+    ${LESSON}<button id="cl">CLOSE</button></div>`;
+    $('#cl').addEventListener('click', () => { w.hidden = true; clearInterval(rainT); cv.hidden = true; winning = false; if (st && st.status === 'ended') showFinal(); });
   }, 2500);
 }
 

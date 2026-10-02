@@ -24,6 +24,7 @@ Keep the real answer only in your private `.env` as `FINAL_CODE`. Never commit `
 - Captions, image descriptions and profile content: edit `data/puzzle.json`. It is served only through `GET /api/puzzle` after the event starts, and never contains the answer.
 
 ## Environment
+`AUTO_END_AFTER` (default `3`) ends the event automatically once that many players have solved it, then shows everyone the final leaderboard.
 See `.env.example`. Set `COOKIE_SECURE=true` when served over HTTPS. If `HINT_n` are left as placeholders, the built-in hint texts are used.
 
 ## Deploy: Render
