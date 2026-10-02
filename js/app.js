@@ -2,11 +2,22 @@ const $ = s => document.querySelector(s), out = $('#out'), inp = $('#in');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = ms => { const s = Math.floor(ms / 1000); return [s / 3600 | 0, (s / 60) % 60 | 0, s % 60].map(n => String(n).padStart(2, '0')).join(':'); };
 const LABEL = { waiting: 'EVENT NOT STARTED', running: 'EVENT LIVE', paused: 'EVENT PAUSED', ended: 'EVENT ENDED' };
-let st = null, puz = null, solved = false, nick = sessionStorage.getItem('nick') || '', cool = 0, rainT;
+let st = null, puz = null, solved = false, nick = sessionStorage.getItem('nick') || '', rainT;
 
 function log(t, c = '') { const d = document.createElement('div'); d.className = c; d.textContent = t; out.appendChild(d); out.scrollTop = out.scrollHeight; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function type(t, c = '') { const d = document.createElement('div'); d.className = c; out.appendChild(d); for (const ch of t) { d.textContent += ch; await sleep(10); } out.scrollTop = out.scrollHeight; }
+
+// ---- hint popup ----
+const hq = [];
+function popup(h) { hq.push(h); if (!$('#hp')) nextPop(); }
+function nextPop() {
+  const h = hq.shift(); if (!h) return;
+  const d = document.createElement('div'); d.id = 'hp';
+  d.innerHTML = `<div class="box"><h3>HINT ${h.n} UNLOCKED</h3><p>${esc(h.text)}</p><button>GOT IT</button></div>`;
+  d.querySelector('button').addEventListener('click', () => { d.remove(); nextPop(); });
+  document.body.appendChild(d);
+}
 
 // ---- live state ----
 function bar() { if (st) $('#bar').textContent = `${LABEL[st.status]} | ${fmt(st.elapsedMs)} | ${st.players} online`; boardUI(); const f = $('#fb'); if (f) f.textContent = st && st.first != null ? `FIRST SUBMISSION RECEIVED at ${fmt(st.first)}` : ''; }
@@ -16,7 +27,7 @@ const es = new EventSource('/api/stream');
 es.addEventListener('state', e => {
   const o = st; st = JSON.parse(e.data); bar();
   if (o && o.status !== st.status) log(MSG[st.status], st.status === 'waiting' || st.status === 'ended' ? 'err' : 'ok');
-  if (o) st.hints.filter(h => !o.hints.some(x => x.n === h.n)).forEach(h => log(`[HINT ${h.n} RELEASED] ${h.text}`, 'hint'));
+  if (o) st.hints.filter(h => !o.hints.some(x => x.n === h.n)).forEach(h => { log(`[HINT ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
   if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)}${st.board && st.board[0] ? ' by ' + st.board[0].nick : ''}. The race is on.`, 'ok');
   if (st.status === 'waiting') { puz = null; solved = false; waiting(); }
   else if (!puz) load();
@@ -78,7 +89,7 @@ function waiting() {
     <li>The event clock is global. It starts for everyone when the admin presses START.</li>
     <li>When it starts, three fictional public profiles unlock: Grammie, Linkout and Hooked.</li>
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
-    <li>Five wrong answers in a row trigger a 30 second lockout, enforced by the server.</li>
+    <li>A wrong answer just shows ACCESS DENIED. There is no lockout, but submissions are rate limited, so work from the clues.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
     <li>Hints unlock for everyone at fixed times after the start. Type <b>hints</b> to read them.</li>
     <li>The first correct submission is announced live to all players.</li>
@@ -94,7 +105,7 @@ ACCESS DENIED   -> check your clues and try again</pre>
 function desk() {
   const d = $('#desk'); d.hidden = false;
   d.dataset.m = 'g'; d.innerHTML = `<span class="tag">FICTIONAL CYBERSECURITY TRAINING PROFILE</span><h2>${esc(puz.person.name)}</h2>
-  <div id="fb"></div><nav id="apps">${appTiles(false)}</nav>
+  <div id="fb"></div><nav id="apps">${appTiles(false)}</nav><div id="clues"><b>CLUES</b><ul><li>The password is related to his personal life.</li></ul></div>
   <div id="site"><p>Select an application.</p></div><div id="board"></div>`;
   d.querySelectorAll('#apps button').forEach(b => b.addEventListener('click', () => site(b.dataset.s)));
   boardUI();
@@ -105,7 +116,7 @@ const C = {
   help: () => ['help            show commands', 'legend          how this exercise works', 'hints           show released hints', 'status          event, timer and hint status', 'submit <code>  submit your answer', 'clear           clear the screen'],
   legend: () => ['All people, sites and photos here are fictional and made for this exercise.', 'Three public profiles belong to one fictional person. Open each one and look closely.', 'Work out the weak password they chose, then: submit <code>'],
   hints: () => st.hints.length ? st.hints.map(h => `HINT ${h.n}: ${h.text}`) : ['No hints released yet.'],
-  status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : Date.now() < cool ? 'COOLDOWN' : 'ACTIVE'} (${nick})`,
+  status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : 'ACTIVE'} (${nick})`,
     `Hints:  ${st.hints.length}/3 released` + (st.nextHintMs != null ? `, next in ${fmt(st.nextHintMs)}` : '')],
   clear: () => { out.innerHTML = ''; return []; }
 };
@@ -117,10 +128,8 @@ async function submit(code) {
   const j = await r.json().catch(() => ({}));
   if (r.ok && j.ok) return win(j);
   if (r.status === 401) { log('ACCESS DENIED', 'err'); document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 500); }
-  if (j.cooldown) log(`Too many attempts. Locked for ${j.cooldown}s.`, 'err');
-  else if (r.status === 429) log(j.retryAfter ? `Cooldown: wait ${j.retryAfter}s.` : 'Slow down.', 'err');
+  if (r.status === 429) log('Too many submissions. Try again shortly.', 'err');
   else if (r.status !== 401) log(j.error || 'ERROR', 'err');
-  if (j.cooldown || j.retryAfter) cool = Date.now() + (j.cooldown || j.retryAfter) * 1000;
 }
 inp.addEventListener('keydown', async e => {
   if (e.key !== 'Enter') return;

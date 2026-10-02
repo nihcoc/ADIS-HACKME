@@ -63,7 +63,6 @@ app.get('/api/puzzle', (req, res) => {
   try { res.json(JSON.parse(fs.readFileSync(PUZZLE_FILE, 'utf8'))); } catch { res.status(500).json({ error: 'PUZZLE UNAVAILABLE' }); }
 });
 
-const att = new Map();
 const subLimit = rateLimit({ windowMs: 60e3, limit: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'TOO MANY REQUESTS' } });
 app.post('/api/submit', subLimit, (req, res) => {
   const { nickname, code } = req.body || {};
@@ -71,15 +70,11 @@ app.post('/api/submit', subLimit, (req, res) => {
   if (!/^[\w .-]{1,20}$/.test(nick) || typeof code !== 'string' || !code.trim() || code.length > 100) return res.status(400).json({ error: 'INVALID INPUT' });
   if (S.status !== 'running') return res.status(403).json({ error: 'EVENT NOT ACTIVE' });
   if (S.solvers.some(x => x.pid === req.pid)) return res.status(409).json({ error: 'ALREADY SOLVED' });
-  const now = Date.now(), a = att.get(req.pid) || { f: 0, until: 0 };
-  if (now < a.until) return res.status(429).json({ error: 'COOLDOWN', retryAfter: Math.ceil((a.until - now) / 1000) });
   if (eq(code.trim(), FINAL_CODE)) {
     const ms = elapsed(); S.solvers.push({ nick, ms, at: new Date().toISOString(), pid: req.pid }); save(); broadcast();
     return res.json({ ok: true, ms, rank: S.solvers.length });
   }
-  if (++a.f >= 5) { a.f = 0; a.until = now + 30e3; }
-  att.set(req.pid, a);
-  res.status(401).json({ error: 'ACCESS DENIED', cooldown: a.until > now ? 30 : 0 });
+  res.status(401).json({ error: 'ACCESS DENIED' });
 });
 
 // ---- admin ----
@@ -103,7 +98,7 @@ app.post('/api/admin/action', need, (req, res) => {
   else if (a === 'pause' && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'paused' });
   else if (a === 'resume' && S.status === 'paused') Object.assign(S, { status: 'running', since: now });
   else if (a === 'end' && (S.status === 'running' || S.status === 'paused')) Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
-  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [] }); att.clear(); }
+  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [] }); }
   else return res.status(400).json({ error: 'INVALID ACTION' });
   save(); broadcast(); res.json({ ok: true });
 });
