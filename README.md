@@ -1,11 +1,11 @@
-# BREACH PROTOCOL
+# HACKME
 
 A live cybersecurity-awareness event disguised as a hacking puzzle. Everything in the game is fictional.
 
 **Stack:** Node.js + Express, Server-Sent Events, vanilla HTML/CSS/JS, no build step, no database.
 State lives in server memory and is persisted to `data/event-state.json`.
 
-> **Run exactly one instance.** SSE connections, cooldown counters and the event clock live in one process.
+> **Run exactly one instance.** SSE connections and the event clock live in one process.
 > Scaling horizontally would need shared state and a distributed event system.
 
 ## Run locally
@@ -40,9 +40,9 @@ See `.env.example`. Set `COOKIE_SECURE=true` when served over HTTPS. If `HINT_n`
 ```
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
 sudo apt install -y nodejs nginx certbot python3-certbot-nginx
-git clone <repo> breach-protocol && cd breach-protocol
+git clone <repo> hackme && cd hackme
 npm install --omit=dev && cp .env.example .env && nano .env
-sudo npm i -g pm2 && pm2 start server.js --name breach && pm2 save && pm2 startup
+sudo npm i -g pm2 && pm2 start server.js --name hackme && pm2 save && pm2 startup
 ```
 Nginx (SSE needs buffering off):
 ```
@@ -63,6 +63,6 @@ Then: `sudo certbot --nginx -d example.com` and set `COOKIE_SECURE=true`.
 
 ## Deploy: Docker
 ```
-docker build -t breach-protocol .
-docker run -d -p 3000:3000 --env-file .env -v breach-data:/app/data breach-protocol
+docker build -t hackme .
+docker run -d -p 3000:3000 --env-file .env -v hackme-data:/app/data hackme
 ```

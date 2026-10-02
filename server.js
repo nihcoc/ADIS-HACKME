@@ -123,4 +123,4 @@ app.use((req, res, next) => {
   res.status(404).end();
 });
 
-app.listen(PORT, () => console.log(`BREACH PROTOCOL listening on :${PORT}`));
+app.listen(PORT, () => console.log(`HACKME listening on :${PORT}`));

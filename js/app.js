@@ -159,7 +159,7 @@ function win(j) {
 
 // ---- intro ----
 (async () => {
-  await type('BREACH PROTOCOL // cybersecurity awareness exercise');
+  await type('HACKME // cybersecurity awareness exercise');
   await type('All people, sites and photos are fictional and created for this exercise.', 'dim');
   await type(nick ? `Welcome back, ${nick}. Type "help".` : 'Enter your callsign (nickname):');
   inp.focus();
