@@ -89,7 +89,6 @@ function waiting() {
     <li>The event clock is global. It starts for everyone when the admin presses START.</li>
     <li>When it starts, three fictional public profiles unlock: Grammie, Linkout and Hooked.</li>
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
-    <li>A wrong answer just shows ACCESS DENIED. There is no lockout, but submissions are rate limited, so work from the clues.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
     <li>Hints unlock for everyone at fixed times after the start. Type <b>hints</b> to read them.</li>
     <li>The first correct submission is announced live to all players.</li>
