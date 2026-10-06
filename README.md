@@ -24,7 +24,7 @@ Keep the real answer only in your private `.env` as `FINAL_CODE`. Never commit `
 - Captions, image descriptions and profile content: edit `data/puzzle.json`. It is served only through `GET /api/puzzle` after the event starts, and never contains the answer.
 
 ## Classes, scheduling and GST
-Players pick a class (9A-12G) on arrival. In `/admin`, set the start time in GST (UTC+4) and press SCHEDULE: the waiting screen shows a countdown and the event opens automatically at that time. START still works for an immediate start, and RESET clears the schedule. Wrong answers give COLD/WARM/HOT feedback for a player's first 5 wrong guesses only. If you set `HINT_1`-`HINT_3` in `.env`, they override the built-in hints.
+Players pick a class (9A-12G) on arrival. In `/admin`, set the start time in GST (UTC+4) and press SCHEDULE: the waiting screen shows a countdown and the event opens automatically at that time. START still works for an immediate start, and RESET clears the schedule. Each class can be claimed by one player (RESET clears claims, and `/admin` can release a class). The `proximity` command shows a player's hottest and coldest guess, rated COLD/WARM/HOT, up to 5 times. If you set `HINT_1`-`HINT_3` in `.env`, they override the built-in hints.
 
 ## Environment
 `AUTO_END_AFTER` (default `3`) ends the event automatically once that many players have solved it, then shows everyone the final leaderboard.

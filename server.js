@@ -17,7 +17,7 @@ const parseTimes = s => { const a = String(s).split(',').map(Number); return a.l
 
 const LIMIT = Math.max(1, parseInt(E.AUTO_END_AFTER, 10) || 3); // game auto-ends after this many solvers
 // ---- state (memory + JSON file) ----
-let S = { status: 'waiting', accum: 0, since: null, times: parseTimes(E.HINT_TIMES_MINUTES) || [10, 20, 30], board: false, solvers: [], startAt: null };
+let S = { status: 'waiting', accum: 0, since: null, times: parseTimes(E.HINT_TIMES_MINUTES) || [10, 20, 30], board: false, solvers: [], startAt: null, claims: {} };
 try { Object.assign(S, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch {}
 const save = () => { try { fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true }); fs.writeFileSync(STATE_FILE, JSON.stringify(S)); } catch (e) { console.error('persist failed', e.message); } };
 const elapsed = () => S.accum + (S.status === 'running' ? Date.now() - S.since : 0);
@@ -27,8 +27,8 @@ const pc = new Set(), ac = new Set();
 function snap(admin) {
   const el = elapsed(), hs = released(), next = S.times.map(t => t * 6e4).find(t => t > el);
   const s = { status: S.status, elapsedMs: el, hints: hs, nextHintMs: S.status !== 'waiting' && next !== undefined ? next - el : null,
-    players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, cls: x.cls, ms: x.ms, at: x.at })) : null };
-  if (admin) Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, cls: x.cls, ms: x.ms, at: x.at })), times: S.times, boardEnabled: S.board, hintsReleased: hs.length });
+    players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, firstCls: S.solvers.length ? S.solvers[0].cls : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })) : null };
+  if (admin) Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })), times: S.times, claimed: Object.keys(S.claims).sort(), boardEnabled: S.board, hintsReleased: hs.length });
   return s;
 }
 const send = (r, d) => r.write(`event: state\ndata: ${JSON.stringify(d)}\n\n`);
@@ -68,32 +68,76 @@ app.get('/api/puzzle', (req, res) => {
 });
 
 const CLASS_RE = /^(9|10|11|12)[A-G]$/;
-const chk = new Map(); // proximity checks used per player (first 5 wrong answers only)
-const split = x => { const m = /^([A-Za-z]+)([^A-Za-z0-9]*)(\d+)$/.exec(x); return m ? [m[1].toLowerCase(), m[2], m[3]] : null; };
-function closeness(g) {
-  const b = split(FINAL_CODE); if (!b) return 'COLD';
-  const x = g.toLowerCase(), L = x.includes(b[0]), D = x.includes(b[2]), Y = b[1] && x.includes(b[1]);
-  const score = (L ? 1 : 0) + (D ? 1 : 0) + ((L || D) && Y ? 0.5 : 0);
-  return score >= 1.5 ? 'HOT' : score >= 1 ? 'WARM' : 'COLD';
+const classOf = p => Object.keys(S.claims).find(k => S.claims[k] === p) || null;
+const guesses = new Map(), pxUsed = new Map(); // per player: wrong guesses, proximity checks used
+
+// Closeness of a guess to FINAL_CODE, 0-100. Works for ANY password: it only compares characters.
+// 60% "coverage" = share of the password found in the guess as shared chunks (2+ chars, each char used once)
+// 40% edit-distance similarity (Levenshtein). Case-insensitive.
+function lev(a, b) {
+  let p = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const c = [i];
+    for (let j = 1; j <= b.length; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    p = c;
+  }
+  return p[b.length];
 }
-const subLimit = rateLimit({ windowMs: 60e3, limit: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'TOO MANY REQUESTS' } });
+function cover(a, b) {
+  const g = [...a], p = [...b]; let tot = 0;
+  for (;;) {
+    let best = 0, bi = 0, bj = 0;
+    for (let i = 0; i < g.length; i++) for (let j = 0; j < p.length; j++) {
+      let k = 0;
+      while (i + k < g.length && j + k < p.length && g[i + k] !== null && g[i + k] === p[j + k]) k++;
+      if (k > best) { best = k; bi = i; bj = j; }
+    }
+    if (best < 2) return tot;
+    for (let k = 0; k < best; k++) { g[bi + k] = null; p[bj + k] = null; }
+    tot += best;
+  }
+}
+const score = guess => {
+  const a = guess.toLowerCase(), b = FINAL_CODE.toLowerCase();
+  return Math.round(100 * (0.6 * Math.min(1, cover(a, b) / b.length) + 0.4 * Math.max(0, 1 - lev(a, b) / Math.max(a.length, b.length))));
+};
+const tier = s => s >= 70 ? 'HOT' : s >= 35 ? 'WARM' : 'COLD';
+const subLimit = rateLimit({ windowMs: 60e3, limit: 30, keyGenerator: req => req.pid, standardHeaders: true, legacyHeaders: false, message: { error: 'TOO MANY REQUESTS' } });
 app.post('/api/submit', subLimit, (req, res) => {
-  const { nickname, code, cls } = req.body || {};
-  const nick = typeof nickname === 'string' ? nickname.trim() : '';
-  if (!/^[\w .-]{1,20}$/.test(nick) || typeof code !== 'string' || !code.trim() || code.length > 100) return res.status(400).json({ error: 'INVALID INPUT' });
-  if (typeof cls !== 'string' || !CLASS_RE.test(cls)) return res.status(400).json({ error: 'SELECT A CLASS' });
+  const { code } = req.body || {};
+  if (typeof code !== 'string' || !code.trim() || code.length > 100) return res.status(400).json({ error: 'INVALID INPUT' });
+  const cls = classOf(req.pid);
+  if (!cls) return res.status(400).json({ error: 'SELECT A CLASS' });
   if (S.status !== 'running') return res.status(403).json({ error: 'EVENT NOT ACTIVE' });
   if (S.solvers.some(x => x.pid === req.pid)) return res.status(409).json({ error: 'ALREADY SOLVED' });
   if (eq(code.trim(), FINAL_CODE)) {
-    const ms = elapsed(); S.solvers.push({ nick, cls, ms, at: new Date().toISOString(), pid: req.pid });
+    const ms = elapsed(); S.solvers.push({ cls, ms, at: new Date().toISOString(), pid: req.pid });
     if (S.solvers.length >= LIMIT && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
     save(); broadcast();
     return res.json({ ok: true, ms, rank: S.solvers.length });
   }
-  const used = chk.get(req.pid) || 0;
-  let prox = null;
-  if (used < 5) { chk.set(req.pid, used + 1); prox = closeness(code.trim()); }
-  res.status(401).json({ error: 'ACCESS DENIED', closeness: prox, checksLeft: Math.max(0, 4 - used) });
+  const gs = guesses.get(req.pid) || []; gs.push({ g: code.trim(), s: score(code.trim()) }); guesses.set(req.pid, gs.slice(-200));
+  res.status(401).json({ error: 'ACCESS DENIED' });
+});
+
+app.get('/api/classes', (req, res) => res.json({ taken: Object.keys(S.claims), mine: classOf(req.pid) }));
+app.post('/api/class', subLimit, (req, res) => {
+  const c = req.body && req.body.cls;
+  if (typeof c !== 'string' || !CLASS_RE.test(c)) return res.status(400).json({ error: 'INVALID CLASS' });
+  const mine = classOf(req.pid);
+  if (mine) return res.json({ ok: true, cls: mine });
+  if (S.claims[c]) return res.status(409).json({ error: 'CLASS TAKEN' });
+  S.claims[c] = req.pid; save(); res.json({ ok: true, cls: c });
+});
+// On request, a player sees the hottest and coldest of their own wrong guesses (5 requests each).
+app.post('/api/proximity', subLimit, (req, res) => {
+  if (S.status !== 'running') return res.status(403).json({ error: 'EVENT NOT ACTIVE' });
+  const gs = guesses.get(req.pid) || [], n = pxUsed.get(req.pid) || 0;
+  if (!gs.length) return res.status(400).json({ error: 'SUBMIT A GUESS FIRST' });
+  if (n >= 5) return res.status(403).json({ error: 'NO PROXIMITY CHECKS LEFT' });
+  pxUsed.set(req.pid, n + 1);
+  const hot = gs.reduce((a, b) => b.s > a.s ? b : a), cold = gs.reduce((a, b) => b.s < a.s ? b : a), o = x => ({ guess: x.g, tier: tier(x.s) });
+  res.json({ hot: o(hot), cold: o(cold), checksLeft: 4 - n });
 });
 
 // ---- admin ----
@@ -118,7 +162,7 @@ app.post('/api/admin/action', need, (req, res) => {
   else if (a === 'pause' && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'paused' });
   else if (a === 'resume' && S.status === 'paused') Object.assign(S, { status: 'running', since: now });
   else if (a === 'end' && (S.status === 'running' || S.status === 'paused')) Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
-  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null }); chk.clear(); }
+  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null, claims: {} }); guesses.clear(); pxUsed.clear(); }
   else return res.status(400).json({ error: 'INVALID ACTION' });
   save(); broadcast(); res.json({ ok: true });
 });
@@ -133,6 +177,12 @@ app.post('/api/admin/config', need, (req, res) => {
   }
   if (board !== undefined) S.board = board === true;
   save(); broadcast(); res.json({ ok: true });
+});
+
+app.post('/api/admin/release', need, (req, res) => {
+  const c = req.body && req.body.cls;
+  if (typeof c !== 'string' || !S.claims[c]) return res.status(400).json({ error: 'NOT CLAIMED' });
+  delete S.claims[c]; save(); broadcast(); res.json({ ok: true });
 });
 
 // ---- static files: served from the project root (no public/ folder) ----

@@ -5,7 +5,7 @@ const GST = { timeZone: 'Asia/Dubai' }; // Gulf Standard Time, UTC+4
 const gstTime = t => new Date(t).toLocaleTimeString('en-GB', { ...GST, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + ' GST';
 const gstDay = t => new Date(t).toLocaleString('en-GB', { ...GST, weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) + ' GST';
 const LABEL = { waiting: 'EVENT NOT STARTED', running: 'EVENT LIVE', paused: 'EVENT PAUSED', ended: 'EVENT ENDED' };
-let st = null, puz = null, solved = false, nick = sessionStorage.getItem('nick') || '', cls = sessionStorage.getItem('cls') || '', rainT, winning = false;
+let st = null, puz = null, solved = false, cls = '', rainT, winning = false;
 
 function log(t, c = '') { const d = document.createElement('div'); d.className = c; d.textContent = t; out.appendChild(d); out.scrollTop = out.scrollHeight; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -32,18 +32,18 @@ function bar() {
     const sc = $('#sched'); if (sc) sc.textContent = st.startAt ? `Starts at ${gstDay(st.startAt)}` : 'Start time will be announced by the admin';
     const m = $('#mycls'); if (m) m.textContent = cls ? `Class ${cls}` : '';
   }
-  boardUI(); const f = $('#fb'); if (f) f.textContent = st && st.first != null ? `FIRST SUBMISSION RECEIVED at ${fmt(st.first)}` : '';
+  boardUI(); const f = $('#fb'); if (f) f.textContent = st && st.first != null ? `FIRST SUBMISSION RECEIVED at ${fmt(st.first)} by ${st.firstCls || 'a class'}` : '';
 }
 setInterval(bar, 250);
-function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board && st.board.length ? '<b>LEADERBOARD</b><br>' + st.board.map(x => `#${x.rank} ${esc(x.nick)} ${esc(x.cls || '')} ${fmt(x.ms)}`).join('<br>') : ''; }
+function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board && st.board.length ? '<b>LEADERBOARD</b><br>' + st.board.map(x => `#${x.rank} ${esc(x.cls || '')} ${fmt(x.ms)}`).join('<br>') : ''; }
 const MSG = { running: '>> EVENT STARTED. Systems unlocked.', paused: '>> EVENT PAUSED.', ended: '>> EVENT ENDED.', waiting: '>> EVENT RESET. Awaiting start.' };
 function onState(d) {
   d.rx = Date.now(); const o = st; st = d; bar();
   if (o && o.status !== st.status) log(MSG[st.status], st.status === 'waiting' || st.status === 'ended' ? 'err' : 'ok');
   if (o) st.hints.filter(h => !o.hints.some(x => x.n === h.n)).forEach(h => { log(`[HINT ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
-  if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)}${st.board && st.board[0] ? ' by ' + st.board[0].nick : ''}. The race is on.`, 'ok');
+  if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)} by ${st.firstCls || 'a class'}. The race is on.`, 'ok');
   if (st.status === 'ended' && (!o || o.status !== 'ended')) showFinal();
-  if (st.status === 'waiting') { puz = null; solved = false; $('#win').hidden = true; waiting(); }
+  if (st.status === 'waiting') { puz = null; solved = false; $('#win').hidden = true; waiting(); if (o && o.status !== 'waiting') ensureClass(); }
   else if (!puz) load();
 }
 // Live updates over SSE, with a polling fallback for networks/tunnels that buffer or block event streams.
@@ -107,12 +107,12 @@ function waiting() {
   <h3>Rules and regulations</h3>
   <ol class="rules">
     <li>Everything here is fictional: the person, the websites, the companies and the photos.</li>
-    <li>Select your class, then pick a callsign (nickname, up to 20 characters) in the terminal.</li>
+    <li>Select your class. Each class can be claimed by one player, and claimed classes are greyed out.</li>
     <li>The event opens automatically at the start time set by the admin, shown above in GST. The clock starts for everyone at the same moment.</li>
     <li>When it starts, three fictional public profiles unlock: Grammie, Linkout and Hooked.</li>
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
-    <li>Proximity feedback: after each of your first 5 wrong answers you are told whether you are COLD, WARM or HOT. After those 5 checks, no more feedback is given.</li>
+    <li>Proximity: type <b>proximity</b> to see your hottest and coldest guess so far, rated COLD, WARM or HOT. You get 5 proximity checks.</li>
     <li>The event ends automatically once the first ${st.limit || 3} players solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
     <li>Hints unlock for everyone at fixed times after the start. Type <b>hints</b> to read them.</li>
     <li>The first correct submission is announced live to all players.</li>
@@ -122,8 +122,8 @@ function waiting() {
   <pre class="sub">&gt; submit &lt;your answer&gt;
 
 ACCESS GRANTED  -> finishing time, rank, security tips
-ACCESS DENIED   -> plus COLD / WARM / HOT for your first 5 wrong answers</pre>
-  <p class="dim">Other commands: help, legend, hints, status, clear</p>`;
+ACCESS DENIED   -> try again, or type proximity to check how close you are</pre>
+  <p class="dim">Other commands: help, legend, hints, status, proximity, clear</p>`;
 }
 function desk() {
   const d = $('#desk'); d.hidden = false;
@@ -136,23 +136,29 @@ function desk() {
 
 // ---- commands ----
 const C = {
-  help: () => ['help            show commands', 'legend          how this exercise works', 'hints           show released hints', 'status          event, timer and hint status', 'submit <code>  submit your answer', 'clear           clear the screen'],
+  help: () => ['help            show commands', 'legend          how this exercise works', 'hints           show released hints', 'status          event, timer and hint status', 'submit <code>  submit your answer', 'proximity       hottest and coldest of your guesses (5 checks)', 'clear           clear the screen'],
   legend: () => ['All people, sites and photos here are fictional and made for this exercise.', 'Three public profiles belong to one fictional person. Open each one and look closely.', 'Work out the weak password they chose, then: submit <code>'],
   hints: () => st.hints.length ? st.hints.map(h => `HINT ${h.n}: ${h.text}`) : ['No hints released yet.'],
-  status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : 'ACTIVE'} (${nick}, ${cls})`, `Time:   ${gstTime(Date.now())}`,
+  status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : 'ACTIVE'} (${cls})`, `Time:   ${gstTime(Date.now())}`,
     `Hints:  ${st.hints.length}/3 released` + (st.nextHintMs != null ? `, next in ${fmt(st.nextHintMs)}` : '')],
   clear: () => { out.innerHTML = ''; return []; }
 };
-const PX = { HOT: 'you are very close', WARM: 'you are on the right track', COLD: 'not close' };
-const prox = j => j.closeness ? log(`PROXIMITY: ${j.closeness} - ${PX[j.closeness]} (${j.checksLeft} of 5 proximity checks left)`, j.closeness === 'COLD' ? 'dim' : 'hint') : log('No proximity checks left.', 'dim');
+async function proximity() {
+  const r = await fetch('/api/proximity', { method: 'POST' }), j = await r.json().catch(() => ({}));
+  if (!r.ok) return log(j.error || 'ERROR', 'err');
+  const line = (l, x) => log(`${l}: ${x.guess}   [${x.tier}]`, x.tier === 'COLD' ? 'dim' : 'hint');
+  line('HOTTEST guess', j.hot);
+  if (j.cold.guess !== j.hot.guess) line('COLDEST guess', j.cold); else log('(only one guess so far, so it is both your hottest and coldest)', 'dim');
+  log(`${j.checksLeft} of 5 proximity checks left`, 'dim');
+}
 async function submit(code) {
   if (!code) return log('usage: submit <code>', 'err');
   if (!st || st.status !== 'running') return log('EVENT NOT ACTIVE', 'err');
   if (solved) return log('ALREADY SOLVED', 'err');
-  const r = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: nick, cls, code }) });
+  const r = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
   const j = await r.json().catch(() => ({}));
   if (r.ok && j.ok) return win(j);
-  if (r.status === 401) { log('ACCESS DENIED', 'err'); document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 500); prox(j); }
+  if (r.status === 401) { log('ACCESS DENIED', 'err'); document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 500); }
   if (r.status === 429) log('Too many submissions. Try again shortly.', 'err');
   else if (r.status !== 401) log(j.error || 'ERROR', 'err');
 }
@@ -160,10 +166,11 @@ inp.addEventListener('keydown', async e => {
   if (e.key !== 'Enter') return;
   const v = inp.value.trim(); inp.value = ''; if (!v) return;
   log('> ' + v, 'dim');
-  if (!nick) { if (!/^[\w .-]{1,20}$/.test(v)) return log('Callsign: 1-20 letters, numbers, space . - _', 'err'); nick = v; sessionStorage.setItem('nick', nick); return log(`Welcome, ${nick} (${cls}). Type "help".`, 'ok'); }
+  if (!cls) return log('Select your class first.', 'err');
   if (!st) return log('Connecting... try again.', 'err');
   const [cmd, ...rest] = v.split(/\s+/);
   if (cmd.toLowerCase() === 'submit') return submit(rest.join(' '));
+  if (cmd.toLowerCase() === 'proximity') return proximity();
   const f = C[cmd.toLowerCase()];
   f ? f().forEach(l => log(l)) : log(`Unknown command: ${cmd}. Type "help".`, 'err');
 });
@@ -174,9 +181,9 @@ const LESSON = `<h3>WHAT THIS ATTACK TEACHES</h3><p>Publicly available informati
 function showFinal() {
   if (winning) return;
   const w = $('#win'); w.hidden = false;
-  const rows = (st.board || []).map(x => `<tr><td>#${x.rank}</td><td>${esc(x.nick)}</td><td>${esc(x.cls || '')}</td><td>${fmt(x.ms)}</td><td>${gstTime(x.at)}</td></tr>`).join('') || '<tr><td colspan="5">No solvers</td></tr>';
+  const rows = (st.board || []).map(x => `<tr><td>#${x.rank}</td><td>${esc(x.cls || '')}</td><td>${fmt(x.ms)}</td><td>${gstTime(x.at)}</td></tr>`).join('') || '<tr><td colspan="4">No solvers</td></tr>';
   w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final leaderboard:</p>
-  <table class="lbt"><tr><th>RANK</th><th>NICKNAME</th><th>CLASS</th><th>TIME TAKEN</th><th>SOLVED AT (GST)</th></tr>${rows}</table>${LESSON}<button id="cl">CLOSE</button></div>`;
+  <table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>TIME TAKEN</th><th>SOLVED AT (GST)</th></tr>${rows}</table>${LESSON}<button id="cl">CLOSE</button></div>`;
   $('#cl').addEventListener('click', () => { w.hidden = true; });
 }
 function win(j) {
@@ -193,18 +200,31 @@ function win(j) {
 }
 
 // ---- class selection + intro ----
-function pickClass() {
+function pickClass(taken) {
   return new Promise(res => {
     const o = $('#cls'); o.hidden = false;
     const rows = [9, 10, 11, 12].map(g => `<div class="crow">${'ABCDEFG'.split('').map(l => `<button data-c="${g}${l}">${g}${l}</button>`).join('')}</div>`).join('');
-    o.innerHTML = `<div class="box"><h2 class="glitch" data-t="SELECT YOUR CLASS">SELECT YOUR CLASS</h2><p class="dim">The event is class wise. Choose your class to continue.</p>${rows}</div>`;
-    o.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { cls = b.dataset.c; sessionStorage.setItem('cls', cls); o.hidden = true; res(); }));
+    o.innerHTML = `<div class="box"><h2 class="glitch" data-t="SELECT YOUR CLASS">SELECT YOUR CLASS</h2><p class="dim">The event is class wise. Each class can be claimed once. Greyed-out classes are already taken.</p>${rows}<p id="cmsg" class="err"></p></div>`;
+    const mark = t => o.querySelectorAll('button').forEach(b => { b.disabled = t.includes(b.dataset.c); });
+    mark(taken);
+    const iv = setInterval(() => fetch('/api/classes').then(r => r.json()).then(r => mark(r.taken)).catch(() => {}), 3000);
+    o.querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
+      const r = await fetch('/api/class', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cls: b.dataset.c }) });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok) { cls = j.cls; clearInterval(iv); o.hidden = true; res(); }
+      else { $('#cmsg').textContent = j.error === 'CLASS TAKEN' ? 'That class was just taken. Pick another.' : 'Could not select that class. Try again.'; if (j.error === 'CLASS TAKEN') b.disabled = true; }
+    }));
   });
 }
+async function ensureClass() {
+  const r = await fetch('/api/classes').then(x => x.json()).catch(() => null);
+  if (r && r.mine) { cls = r.mine; return; }
+  cls = ''; await pickClass(r ? r.taken : []);
+}
 (async () => {
-  if (!cls) await pickClass();
+  await ensureClass();
   await type('HACKME // cybersecurity awareness exercise');
   await type('All people, sites and photos are fictional and created for this exercise.', 'dim');
-  await type(nick ? `Welcome back, ${nick} (${cls}). Type "help".` : 'Enter your callsign (nickname):');
+  await type(`Class ${cls} registered. Type "help".`);
   inp.focus();
 })();
