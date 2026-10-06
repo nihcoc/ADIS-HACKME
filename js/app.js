@@ -61,6 +61,7 @@ async function load() {
 // ---- fictional sites ----
 const img = (s, a = '') => `<img src="${esc(s)}" alt="${esc(a)}">`;
 const ph = () => Object.assign(document.createElement('div'), { className: 'ph', textContent: '📷' });
+const cmts = p => p.comments && p.comments.length ? `<div class="cmts"><b>Comments (${p.comments.length})</b>${p.comments.map(c => `<p><b>${esc(c.user)}</b> ${esc(c.text)}<small>${esc(c.date)}</small></p>`).join('')}</div>` : '';
 const SITES = {
   grammie() {
     const g = puz.grammie;
@@ -83,7 +84,7 @@ function site(n) {
   v.querySelectorAll('img').forEach(i => i.addEventListener('error', () => i.replaceWith(ph())));
   v.querySelectorAll('.post').forEach(b => b.addEventListener('click', () => {
     const p = puz.grammie.posts[b.dataset.i];
-    $('#pd').innerHTML = `${img(p.image, p.description)}<p><b>${esc(p.caption)}</b></p><small>${esc(p.date)} &middot; ${esc(p.location)}</small><div class="desc"><b>Image description:</b> ${esc(p.description)}</div>`;
+    $('#pd').innerHTML = `${img(p.image, p.description)}<p><b>${esc(p.caption)}</b></p><small>${esc(p.date)} &middot; ${esc(p.location)}</small><div class="desc"><b>Image description:</b> ${esc(p.description)}</div>${cmts(p)}`;
     $('#pd img').addEventListener('error', e => e.target.replaceWith(ph()));
   }));
 }
