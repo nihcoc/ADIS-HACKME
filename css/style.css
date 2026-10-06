@@ -79,3 +79,13 @@ pre.sub{border:1px dashed var(--d);padding:10px;margin:0 0 8px;white-space:pre-w
 .brand{display:flex;flex-direction:column;gap:2px}
 .org{font-size:11px;letter-spacing:2px;color:var(--d)}
 footer{text-align:center;font-size:10px;color:var(--d);padding:6px 8px 10px;opacity:.85}
+
+#cls{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:12px;background:#020603}
+#cls[hidden]{display:none}
+#cls .box{max-width:560px;width:100%}
+.crow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:8px 0}
+.crow button{padding:10px 0}
+.crow button:hover,.crow button:focus-visible{background:var(--g);color:#000;outline:0}
+.cdbox{border:1px solid var(--d);padding:10px 14px;margin:10px 0;text-align:center}
+.cd{font-size:34px;letter-spacing:4px;color:#fff}
+.lb .pic{overflow:hidden}.lb .pic img,.lb .pic .ph{width:100%;height:100%;aspect-ratio:auto}

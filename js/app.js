@@ -1,8 +1,11 @@
 const $ = s => document.querySelector(s), out = $('#out'), inp = $('#in');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = ms => { const s = Math.floor(ms / 1000); return [s / 3600 | 0, (s / 60) % 60 | 0, s % 60].map(n => String(n).padStart(2, '0')).join(':'); };
+const GST = { timeZone: 'Asia/Dubai' }; // Gulf Standard Time, UTC+4
+const gstTime = t => new Date(t).toLocaleTimeString('en-GB', { ...GST, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + ' GST';
+const gstDay = t => new Date(t).toLocaleString('en-GB', { ...GST, weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) + ' GST';
 const LABEL = { waiting: 'EVENT NOT STARTED', running: 'EVENT LIVE', paused: 'EVENT PAUSED', ended: 'EVENT ENDED' };
-let st = null, puz = null, solved = false, nick = sessionStorage.getItem('nick') || '', rainT, winning = false;
+let st = null, puz = null, solved = false, nick = sessionStorage.getItem('nick') || '', cls = sessionStorage.getItem('cls') || '', rainT, winning = false;
 
 function log(t, c = '') { const d = document.createElement('div'); d.className = c; d.textContent = t; out.appendChild(d); out.scrollTop = out.scrollHeight; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -20,19 +23,36 @@ function nextPop() {
 }
 
 // ---- live state ----
-function bar() { if (st) $('#bar').textContent = `${LABEL[st.status]} | ${fmt(st.elapsedMs)} | ${st.players} online`; boardUI(); const f = $('#fb'); if (f) f.textContent = st && st.first != null ? `FIRST SUBMISSION RECEIVED at ${fmt(st.first)}` : ''; }
-function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board && st.board.length ? '<b>LEADERBOARD</b><br>' + st.board.map(x => `#${x.rank} ${esc(x.nick)} ${fmt(x.ms)}`).join('<br>') : ''; }
+const left = () => st && st.untilStartMs != null ? Math.max(0, st.untilStartMs - (Date.now() - st.rx)) : null;
+function bar() {
+  if (st) {
+    const l = left();
+    $('#bar').textContent = st.status === 'waiting' ? (l != null ? `STARTS IN ${fmt(l)} | ${st.players} online` : `EVENT NOT STARTED | ${st.players} online`) : `${LABEL[st.status]} | ${fmt(st.elapsedMs)} | ${st.players} online`;
+    const c = $('#cd'); if (c) c.textContent = l != null ? fmt(l) : '--:--:--';
+    const sc = $('#sched'); if (sc) sc.textContent = st.startAt ? `Starts at ${gstDay(st.startAt)}` : 'Start time will be announced by the admin';
+    const m = $('#mycls'); if (m) m.textContent = cls ? `Class ${cls}` : '';
+  }
+  boardUI(); const f = $('#fb'); if (f) f.textContent = st && st.first != null ? `FIRST SUBMISSION RECEIVED at ${fmt(st.first)}` : '';
+}
+setInterval(bar, 250);
+function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board && st.board.length ? '<b>LEADERBOARD</b><br>' + st.board.map(x => `#${x.rank} ${esc(x.nick)} ${esc(x.cls || '')} ${fmt(x.ms)}`).join('<br>') : ''; }
 const MSG = { running: '>> EVENT STARTED. Systems unlocked.', paused: '>> EVENT PAUSED.', ended: '>> EVENT ENDED.', waiting: '>> EVENT RESET. Awaiting start.' };
-const es = new EventSource('/api/stream');
-es.addEventListener('state', e => {
-  const o = st; st = JSON.parse(e.data); bar();
+function onState(d) {
+  d.rx = Date.now(); const o = st; st = d; bar();
   if (o && o.status !== st.status) log(MSG[st.status], st.status === 'waiting' || st.status === 'ended' ? 'err' : 'ok');
   if (o) st.hints.filter(h => !o.hints.some(x => x.n === h.n)).forEach(h => { log(`[HINT ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
   if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)}${st.board && st.board[0] ? ' by ' + st.board[0].nick : ''}. The race is on.`, 'ok');
   if (st.status === 'ended' && (!o || o.status !== 'ended')) showFinal();
   if (st.status === 'waiting') { puz = null; solved = false; $('#win').hidden = true; waiting(); }
   else if (!puz) load();
-});
+}
+// Live updates over SSE, with a polling fallback for networks/tunnels that buffer or block event streams.
+let last = Date.now();
+const es = new EventSource('/api/stream');
+es.addEventListener('state', e => { last = Date.now(); onState(JSON.parse(e.data)); });
+const poll = () => fetch('/api/event').then(r => r.json()).then(onState).catch(() => {});
+poll();
+setInterval(() => { if (Date.now() - last > 3500) poll(); }, 2000);
 async function load() {
   const r = await fetch('/api/puzzle'); if (!r.ok) return;
   puz = await r.json(); solved = (await (await fetch('/api/event')).json()).solved; desk();
@@ -49,7 +69,7 @@ const SITES = {
   },
   linkout() {
     const l = puz.linkout, it = x => `<p><b>${esc(x.org)}</b>${x.title ? '<br>' + esc(x.title) : ''}<br><small>${esc(x.period)}</small></p>`;
-    return `<div class="lb"><div class="ban"></div><div class="pic"></div><h3>${esc(puz.person.name)}</h3><p>${esc(l.headline)}</p><small>${esc(l.location)}</small></div>
+    return `<div class="lb"><div class="ban"></div><div class="pic">${img(puz.grammie.avatar)}</div><h3>${esc(puz.person.name)}</h3><p>${esc(l.headline)}</p><small>${esc(l.location)}</small></div>
     <div class="lb"><h3>Experience</h3>${l.experience.map(it).join('')}</div><div class="lb"><h3>Education</h3>${l.education.map(it).join('')}</div>`;
   },
   hooked() {
@@ -79,18 +99,20 @@ const appTiles = locked => APPS.map(a => locked
 
 function waiting() {
   const d = $('#desk'); if (d.dataset.m === 'w') return; d.dataset.m = 'w'; d.hidden = false;
-  d.innerHTML = `<div class="pulse">&#9679; EVENT NOT STARTED. AWAITING ADMIN START</div>
+  d.innerHTML = `<div class="pulse">&#9679; EVENT NOT STARTED</div>
+  <div class="cdbox"><div id="sched"></div><div id="cd" class="cd">--:--:--</div><small class="dim"><span id="mycls"></span> | all times in GST (UTC+4)</small></div>
   <h2>Mission briefing</h2>
   <p class="dim">The clock starts for every player at the same moment. This screen unlocks by itself, so keep the page open.</p>
   <nav id="apps" class="locked">${appTiles(true)}</nav>
   <h3>Rules and regulations</h3>
   <ol class="rules">
     <li>Everything here is fictional: the person, the websites, the companies and the photos.</li>
-    <li>Pick a callsign (nickname, up to 20 characters) in the terminal first.</li>
-    <li>The event clock is global. It starts for everyone when the admin presses START.</li>
+    <li>Select your class, then pick a callsign (nickname, up to 20 characters) in the terminal.</li>
+    <li>The event opens automatically at the start time set by the admin, shown above in GST. The clock starts for everyone at the same moment.</li>
     <li>When it starts, three fictional public profiles unlock: Grammie, Linkout and Hooked.</li>
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
+    <li>Proximity feedback: after each of your first 5 wrong answers you are told whether you are COLD, WARM or HOT. After those 5 checks, no more feedback is given.</li>
     <li>The event ends automatically once the first ${st.limit || 3} players solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
     <li>Hints unlock for everyone at fixed times after the start. Type <b>hints</b> to read them.</li>
     <li>The first correct submission is announced live to all players.</li>
@@ -100,7 +122,7 @@ function waiting() {
   <pre class="sub">&gt; submit &lt;your answer&gt;
 
 ACCESS GRANTED  -> finishing time, rank, security tips
-ACCESS DENIED   -> check your clues and try again</pre>
+ACCESS DENIED   -> plus COLD / WARM / HOT for your first 5 wrong answers</pre>
   <p class="dim">Other commands: help, legend, hints, status, clear</p>`;
 }
 function desk() {
@@ -117,18 +139,20 @@ const C = {
   help: () => ['help            show commands', 'legend          how this exercise works', 'hints           show released hints', 'status          event, timer and hint status', 'submit <code>  submit your answer', 'clear           clear the screen'],
   legend: () => ['All people, sites and photos here are fictional and made for this exercise.', 'Three public profiles belong to one fictional person. Open each one and look closely.', 'Work out the weak password they chose, then: submit <code>'],
   hints: () => st.hints.length ? st.hints.map(h => `HINT ${h.n}: ${h.text}`) : ['No hints released yet.'],
-  status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : 'ACTIVE'} (${nick})`,
+  status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : 'ACTIVE'} (${nick}, ${cls})`, `Time:   ${gstTime(Date.now())}`,
     `Hints:  ${st.hints.length}/3 released` + (st.nextHintMs != null ? `, next in ${fmt(st.nextHintMs)}` : '')],
   clear: () => { out.innerHTML = ''; return []; }
 };
+const PX = { HOT: 'you are very close', WARM: 'you are on the right track', COLD: 'not close' };
+const prox = j => j.closeness ? log(`PROXIMITY: ${j.closeness} - ${PX[j.closeness]} (${j.checksLeft} of 5 proximity checks left)`, j.closeness === 'COLD' ? 'dim' : 'hint') : log('No proximity checks left.', 'dim');
 async function submit(code) {
   if (!code) return log('usage: submit <code>', 'err');
   if (!st || st.status !== 'running') return log('EVENT NOT ACTIVE', 'err');
   if (solved) return log('ALREADY SOLVED', 'err');
-  const r = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: nick, code }) });
+  const r = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: nick, cls, code }) });
   const j = await r.json().catch(() => ({}));
   if (r.ok && j.ok) return win(j);
-  if (r.status === 401) { log('ACCESS DENIED', 'err'); document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 500); }
+  if (r.status === 401) { log('ACCESS DENIED', 'err'); document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 500); prox(j); }
   if (r.status === 429) log('Too many submissions. Try again shortly.', 'err');
   else if (r.status !== 401) log(j.error || 'ERROR', 'err');
 }
@@ -136,7 +160,7 @@ inp.addEventListener('keydown', async e => {
   if (e.key !== 'Enter') return;
   const v = inp.value.trim(); inp.value = ''; if (!v) return;
   log('> ' + v, 'dim');
-  if (!nick) { if (!/^[\w .-]{1,20}$/.test(v)) return log('Callsign: 1-20 letters, numbers, space . - _', 'err'); nick = v; sessionStorage.setItem('nick', nick); return log(`Welcome, ${nick}. Type "help".`, 'ok'); }
+  if (!nick) { if (!/^[\w .-]{1,20}$/.test(v)) return log('Callsign: 1-20 letters, numbers, space . - _', 'err'); nick = v; sessionStorage.setItem('nick', nick); return log(`Welcome, ${nick} (${cls}). Type "help".`, 'ok'); }
   if (!st) return log('Connecting... try again.', 'err');
   const [cmd, ...rest] = v.split(/\s+/);
   if (cmd.toLowerCase() === 'submit') return submit(rest.join(' '));
@@ -150,9 +174,9 @@ const LESSON = `<h3>WHAT THIS ATTACK TEACHES</h3><p>Publicly available informati
 function showFinal() {
   if (winning) return;
   const w = $('#win'); w.hidden = false;
-  const rows = (st.board || []).map(x => `<tr><td>#${x.rank}</td><td>${esc(x.nick)}</td><td>${fmt(x.ms)}</td></tr>`).join('') || '<tr><td colspan="3">No solvers</td></tr>';
+  const rows = (st.board || []).map(x => `<tr><td>#${x.rank}</td><td>${esc(x.nick)}</td><td>${esc(x.cls || '')}</td><td>${fmt(x.ms)}</td><td>${gstTime(x.at)}</td></tr>`).join('') || '<tr><td colspan="5">No solvers</td></tr>';
   w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final leaderboard:</p>
-  <table class="lbt"><tr><th>RANK</th><th>NICKNAME</th><th>TIME TAKEN</th></tr>${rows}</table>${LESSON}<button id="cl">CLOSE</button></div>`;
+  <table class="lbt"><tr><th>RANK</th><th>NICKNAME</th><th>CLASS</th><th>TIME TAKEN</th><th>SOLVED AT (GST)</th></tr>${rows}</table>${LESSON}<button id="cl">CLOSE</button></div>`;
   $('#cl').addEventListener('click', () => { w.hidden = true; });
 }
 function win(j) {
@@ -162,16 +186,25 @@ function win(j) {
     cols.forEach((y, i) => { x.fillText(String.fromCharCode(0x30A0 + Math.random() * 96), i * 16, y * 16); cols[i] = y * 16 > cv.height && Math.random() > .975 ? 0 : y + 1; }); }, 50);
   setTimeout(() => {
     const w = $('#win'); w.hidden = false;
-    w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>Finishing time: <b>${fmt(j.ms)}</b> &nbsp; Rank: <b>#${j.rank}</b></p>
+    w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>Finishing time: <b>${fmt(j.ms)}</b> &nbsp; Rank: <b>#${j.rank}</b> &nbsp; Solved at: <b>${gstTime(Date.now())}</b></p>
     ${LESSON}<button id="cl">CLOSE</button></div>`;
     $('#cl').addEventListener('click', () => { w.hidden = true; clearInterval(rainT); cv.hidden = true; winning = false; if (st && st.status === 'ended') showFinal(); });
   }, 2500);
 }
 
-// ---- intro ----
+// ---- class selection + intro ----
+function pickClass() {
+  return new Promise(res => {
+    const o = $('#cls'); o.hidden = false;
+    const rows = [9, 10, 11, 12].map(g => `<div class="crow">${'ABCDEFG'.split('').map(l => `<button data-c="${g}${l}">${g}${l}</button>`).join('')}</div>`).join('');
+    o.innerHTML = `<div class="box"><h2 class="glitch" data-t="SELECT YOUR CLASS">SELECT YOUR CLASS</h2><p class="dim">The event is class wise. Choose your class to continue.</p>${rows}</div>`;
+    o.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { cls = b.dataset.c; sessionStorage.setItem('cls', cls); o.hidden = true; res(); }));
+  });
+}
 (async () => {
+  if (!cls) await pickClass();
   await type('HACKME // cybersecurity awareness exercise');
   await type('All people, sites and photos are fictional and created for this exercise.', 'dim');
-  await type(nick ? `Welcome back, ${nick}. Type "help".` : 'Enter your callsign (nickname):');
+  await type(nick ? `Welcome back, ${nick} (${cls}). Type "help".` : 'Enter your callsign (nickname):');
   inp.focus();
 })();

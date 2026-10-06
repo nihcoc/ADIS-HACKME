@@ -9,15 +9,15 @@ if (!SESSION_SECRET || !ADMIN_PASSWORD || !FINAL_CODE) { console.error('Set SESS
 
 const env = (k, d) => (E[k] && !E[k].startsWith('replace-with') ? E[k] : d);
 const HINTS = [
-  env('HINT_1', 'Start by looking for personal information that appears across the fictional person\'s different profiles.'),
-  env('HINT_2', 'Inspect the descriptions attached to the Grammie photographs, then compare what you discover with the professional information on Linkout.'),
-  env('HINT_3', 'One clue gives you a personal name. Another gives you a meaningful year. Think about how people commonly combine those things when creating weak passwords.')
+  env('HINT_1', 'Not everything worth noticing is the first thing you see.'),
+  env('HINT_2', 'Different places show different sides of the same life. Some details are easy to read past.'),
+  env('HINT_3', 'A name close to him and a year that mattered to him often end up joined in a careless password.')
 ];
 const parseTimes = s => { const a = String(s).split(',').map(Number); return a.length === 3 && a.every(n => isFinite(n) && n >= 0 && n <= 600) ? a : null; };
 
 const LIMIT = Math.max(1, parseInt(E.AUTO_END_AFTER, 10) || 3); // game auto-ends after this many solvers
 // ---- state (memory + JSON file) ----
-let S = { status: 'waiting', accum: 0, since: null, times: parseTimes(E.HINT_TIMES_MINUTES) || [10, 20, 30], board: false, solvers: [] };
+let S = { status: 'waiting', accum: 0, since: null, times: parseTimes(E.HINT_TIMES_MINUTES) || [10, 20, 30], board: false, solvers: [], startAt: null };
 try { Object.assign(S, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch {}
 const save = () => { try { fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true }); fs.writeFileSync(STATE_FILE, JSON.stringify(S)); } catch (e) { console.error('persist failed', e.message); } };
 const elapsed = () => S.accum + (S.status === 'running' ? Date.now() - S.since : 0);
@@ -27,13 +27,16 @@ const pc = new Set(), ac = new Set();
 function snap(admin) {
   const el = elapsed(), hs = released(), next = S.times.map(t => t * 6e4).find(t => t > el);
   const s = { status: S.status, elapsedMs: el, hints: hs, nextHintMs: S.status !== 'waiting' && next !== undefined ? next - el : null,
-    players: pc.size, limit: LIMIT, first: S.solvers.length ? S.solvers[0].ms : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, ms: x.ms })) : null };
-  if (admin) Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, ms: x.ms, at: x.at })), times: S.times, boardEnabled: S.board, hintsReleased: hs.length });
+    players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, cls: x.cls, ms: x.ms, at: x.at })) : null };
+  if (admin) Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, nick: x.nick, cls: x.cls, ms: x.ms, at: x.at })), times: S.times, boardEnabled: S.board, hintsReleased: hs.length });
   return s;
 }
 const send = (r, d) => r.write(`event: state\ndata: ${JSON.stringify(d)}\n\n`);
 const broadcast = () => { const p = snap(false), a = snap(true); pc.forEach(r => send(r, p)); ac.forEach(r => send(r, a)); };
-setInterval(broadcast, 1000);
+setInterval(() => {
+  if (S.status === 'waiting' && S.startAt && Date.now() >= S.startAt) { Object.assign(S, { status: 'running', accum: 0, since: Date.now(), startAt: null }); save(); } // scheduled start
+  broadcast();
+}, 1000);
 function sse(req, res, set) {
   res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
   res.flushHeaders(); set.add(res); req.on('close', () => { set.delete(res); broadcast(); });
@@ -64,20 +67,33 @@ app.get('/api/puzzle', (req, res) => {
   try { res.json(JSON.parse(fs.readFileSync(PUZZLE_FILE, 'utf8'))); } catch { res.status(500).json({ error: 'PUZZLE UNAVAILABLE' }); }
 });
 
+const CLASS_RE = /^(9|10|11|12)[A-G]$/;
+const chk = new Map(); // proximity checks used per player (first 5 wrong answers only)
+const split = x => { const m = /^([A-Za-z]+)([^A-Za-z0-9]*)(\d+)$/.exec(x); return m ? [m[1].toLowerCase(), m[2], m[3]] : null; };
+function closeness(g) {
+  const b = split(FINAL_CODE); if (!b) return 'COLD';
+  const x = g.toLowerCase(), L = x.includes(b[0]), D = x.includes(b[2]), Y = b[1] && x.includes(b[1]);
+  const score = (L ? 1 : 0) + (D ? 1 : 0) + ((L || D) && Y ? 0.5 : 0);
+  return score >= 1.5 ? 'HOT' : score >= 1 ? 'WARM' : 'COLD';
+}
 const subLimit = rateLimit({ windowMs: 60e3, limit: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'TOO MANY REQUESTS' } });
 app.post('/api/submit', subLimit, (req, res) => {
-  const { nickname, code } = req.body || {};
+  const { nickname, code, cls } = req.body || {};
   const nick = typeof nickname === 'string' ? nickname.trim() : '';
   if (!/^[\w .-]{1,20}$/.test(nick) || typeof code !== 'string' || !code.trim() || code.length > 100) return res.status(400).json({ error: 'INVALID INPUT' });
+  if (typeof cls !== 'string' || !CLASS_RE.test(cls)) return res.status(400).json({ error: 'SELECT A CLASS' });
   if (S.status !== 'running') return res.status(403).json({ error: 'EVENT NOT ACTIVE' });
   if (S.solvers.some(x => x.pid === req.pid)) return res.status(409).json({ error: 'ALREADY SOLVED' });
   if (eq(code.trim(), FINAL_CODE)) {
-    const ms = elapsed(); S.solvers.push({ nick, ms, at: new Date().toISOString(), pid: req.pid });
+    const ms = elapsed(); S.solvers.push({ nick, cls, ms, at: new Date().toISOString(), pid: req.pid });
     if (S.solvers.length >= LIMIT && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
     save(); broadcast();
     return res.json({ ok: true, ms, rank: S.solvers.length });
   }
-  res.status(401).json({ error: 'ACCESS DENIED' });
+  const used = chk.get(req.pid) || 0;
+  let prox = null;
+  if (used < 5) { chk.set(req.pid, used + 1); prox = closeness(code.trim()); }
+  res.status(401).json({ error: 'ACCESS DENIED', closeness: prox, checksLeft: Math.max(0, 4 - used) });
 });
 
 // ---- admin ----
@@ -94,27 +110,34 @@ app.post('/api/admin/login', loginLimit, (req, res) => {
 });
 app.post('/api/admin/logout', (req, res) => { sessions.delete(req.signedCookies.adm); res.clearCookie('adm').json({ ok: true }); });
 app.get('/api/admin/me', need, (req, res) => res.json({ ok: true }));
+app.get('/api/admin/state', need, (req, res) => res.json(snap(true)));
 app.get('/api/admin/stream', need, (req, res) => sse(req, res, ac));
 app.post('/api/admin/action', need, (req, res) => {
   const a = req.body && req.body.action, now = Date.now();
-  if (a === 'start' && S.status === 'waiting') Object.assign(S, { status: 'running', accum: 0, since: now });
+  if (a === 'start' && S.status === 'waiting') Object.assign(S, { status: 'running', accum: 0, since: now, startAt: null });
   else if (a === 'pause' && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'paused' });
   else if (a === 'resume' && S.status === 'paused') Object.assign(S, { status: 'running', since: now });
   else if (a === 'end' && (S.status === 'running' || S.status === 'paused')) Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
-  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [] }); }
+  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null }); chk.clear(); }
   else return res.status(400).json({ error: 'INVALID ACTION' });
   save(); broadcast(); res.json({ ok: true });
 });
 app.post('/api/admin/config', need, (req, res) => {
-  const { times, board } = req.body || {};
+  const { times, board, startAt } = req.body || {};
   if (times !== undefined) { const t = Array.isArray(times) ? parseTimes(times.join(',')) : null; if (!t) return res.status(400).json({ error: 'INVALID TIMES' }); S.times = t; }
+  if (startAt !== undefined) {
+    if (S.status !== 'waiting') return res.status(400).json({ error: 'EVENT ALREADY STARTED' });
+    if (startAt === null) S.startAt = null;
+    else if (Number.isFinite(startAt) && startAt > Date.now()) S.startAt = Math.floor(startAt);
+    else return res.status(400).json({ error: 'PICK A FUTURE TIME' });
+  }
   if (board !== undefined) S.board = board === true;
   save(); broadcast(); res.json({ ok: true });
 });
 
 // ---- static files: served from the project root (no public/ folder) ----
 // Only an allowlist of paths is exposed, so server.js, .env, data/ and views/ are never reachable.
-const serve = express.static(__dirname, { dotfiles: 'ignore' });
+const serve = express.static(__dirname, { dotfiles: 'ignore', setHeaders: (res, f) => { if (/[\\/]assets[\\/]/.test(f)) res.set('Cache-Control', 'public, max-age=3600'); } });
 const OPEN = ['/css/', '/js/', '/assets/'];
 app.use((req, res, next) => {
   const p = req.path;
