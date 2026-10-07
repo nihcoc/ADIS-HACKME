@@ -15,6 +15,9 @@ main{display:grid;grid-template-columns:minmax(300px,2fr) 3fr;gap:12px;padding:1
 main:has(#desk[hidden]){grid-template-columns:1fr}
 section{border:1px solid var(--d);padding:10px;min-width:0}
 #term{display:flex;flex-direction:column;height:calc(100vh - 100px);position:sticky;top:8px}
+#commandMap{flex:none;border:1px solid var(--d);padding:8px 10px;margin-bottom:8px;background:#031a0c}
+#commandMap h2{font:600 12px var(--mono);letter-spacing:.04em;margin:0 0 6px;color:var(--g)}
+#commandList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 16px;font:11px/1.45 "Courier New",ui-monospace,monospace;color:#b6d6bf}
 #out{flex:1;overflow:auto;white-space:pre-wrap;word-break:break-word}
 #term,#out,#in,pre.sub{font-family:"Courier New",ui-monospace,monospace}
 #out .err,.err{color:var(--r)}#out .ok{color:#fff}#out .hint{color:#ffd34d}#out .dim{color:var(--d)}
@@ -61,6 +64,7 @@ button:focus-visible{outline:2px solid #b6ffd6;outline-offset:2px}
 #win[hidden]{display:none}
 #win .box{background:#020603;border:1px solid var(--g);max-width:640px;max-height:92vh;overflow:auto;padding:18px}
 @media(max-width:800px){main{grid-template-columns:1fr!important}#term{position:static;height:60vh}}
+@media(max-width:560px){#commandList{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 
 #apps .app{background:#031a0c;border:1px solid var(--d);color:var(--g);font:inherit;padding:14px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
