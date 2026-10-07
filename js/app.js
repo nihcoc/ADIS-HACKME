@@ -106,8 +106,8 @@ const cmts = p => p.comments && p.comments.length ? `<div class="cmts"><b>Commen
 const SITES = {
   grammie() {
     const g = puz.grammie;
-    return `<div class="gh"><div class="av">${img(g.avatar)}</div><div><h3>${esc(puz.person.name)}</h3><b>@${esc(g.username)}</b><p>${esc(g.bio)}</p><p><b>${g.followers}</b> followers &nbsp; <b>${g.following}</b> following</p></div></div>
-    <div class="grid">${g.posts.map((p, i) => `<button class="post" data-i="${i}" aria-label="Open post ${i + 1}">${img(p.image, p.description)}</button>`).join('')}</div><div id="pd"></div>`;
+    return `<div class="gh"><div class="av">${img(g.avatar)}</div><div><div class="gidentity"><h3>${esc(puz.person.name)}</h3><b>@${esc(g.username)}</b></div><p>${esc(g.bio)}</p><p><b>${g.followers}</b> followers &nbsp; <b>${g.following}</b> following</p></div></div>
+    <div class="grid">${g.posts.map((p, i) => `<button class="post" data-i="${i}" aria-label="Open post ${i + 1}">${img(p.image)}</button>`).join('')}</div><div id="pd"></div>`;
   },
   linkout() {
     const l = puz.linkout, it = x => `<p><b>${esc(x.org)}</b>${x.title ? '<br>' + esc(x.title) : ''}<br><small>${esc(x.period)}</small></p>`;
@@ -127,7 +127,7 @@ function site(n) {
   v.querySelectorAll('img').forEach(i => i.addEventListener('error', () => i.replaceWith(ph())));
   v.querySelectorAll('.post').forEach(b => b.addEventListener('click', () => {
     const p = puz.grammie.posts[b.dataset.i];
-    $('#pd').innerHTML = `${img(p.image, p.description)}<p><b>${esc(p.caption)}</b></p><small>${esc(p.date)} &middot; ${esc(p.location)}</small><div class="desc"><b>Image description:</b> ${esc(p.description)}</div>${cmts(p)}`;
+    $('#pd').innerHTML = `${img(p.image)}<p><b>${esc(p.caption)}</b></p><small>${esc(p.date)} &middot; ${esc(p.location)}</small>${cmts(p)}`;
     $('#pd img').addEventListener('error', e => e.target.replaceWith(ph()));
   }));
 }
@@ -179,9 +179,10 @@ function desk() {
 }
 
 // ---- commands ----
+const COMMANDS = ['help            show commands', 'legend          how this exercise works', 'hints           show released messages', 'status          event, timer and message status', 'submit <code>  submit your answer', 'proximity       hottest and coldest of your guesses (5 checks)', 'clear           clear the screen'];
 const C = {
-  help: () => ['help            show commands', 'legend          how this exercise works', 'hints           show released hints', 'status          event, timer and hint status', 'submit <code>  submit your answer', 'proximity       hottest and coldest of your guesses (5 checks)', 'clear           clear the screen'],
-  legend: () => ['All people, sites and photos here are fictional and made for this exercise.', 'Three public profiles belong to one fictional person. Open each one and look closely.', 'Work out the weak password they chose, then: submit <code>'],
+  help: () => COMMANDS,
+  legend: () => ['PassTrace // cybersecurity awareness exercise', 'All people, sites and photos here are fictional and made for this exercise.', 'Three public profiles belong to one fictional person. Open each one and look closely.', 'Work out the weak password they chose, then: submit <code>', 'COMMANDS:', ...COMMANDS],
   hints: () => st.hints.length ? st.hints.map(h => `MESSAGE ${h.n}: ${h.text}`) : ['No messages released yet.'],
   status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : 'ACTIVE'} (${cls})`, `Time:   ${gstTime(Date.now())}`,
     `Messages: ${st.hints.length} released`],
