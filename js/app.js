@@ -167,7 +167,7 @@ function waiting() {
 
 ACCESS GRANTED  -> finishing time, rank, security tips
 ACCESS DENIED   -> try again, or type proximity to check how close you are</pre>
-  <p class="dim">Other commands: help, legend, hints, status, proximity, clear</p>`;
+  <p class="dim">Commands are listed in the command map above the console.</p>`;
 }
 function desk() {
   const d = $('#desk'); d.hidden = false;
@@ -179,7 +179,7 @@ function desk() {
 }
 
 // ---- commands ----
-const COMMANDS = ['help            show commands', 'legend          how this exercise works', 'hints           show released messages', 'status          event, timer and message status', 'submit <code>  submit your answer', 'proximity       hottest and coldest of your guesses (5 checks)', 'clear           clear the screen'];
+const COMMANDS = ['legend          how this exercise works', 'hints           show released messages', 'status          event, timer and message status', 'submit <code>  submit your answer', 'proximity       hottest and coldest of your guesses (5 checks)', 'clear           clear the screen'];
 const commandList = $('#commandList');
 if (commandList) COMMANDS.forEach(command => {
   const item = document.createElement('div');
@@ -187,7 +187,6 @@ if (commandList) COMMANDS.forEach(command => {
   commandList.appendChild(item);
 });
 const C = {
-  help: () => COMMANDS,
   legend: () => ['PassTrace // cybersecurity awareness exercise', 'All people, sites and photos here are fictional and made for this exercise.', 'Three public profiles belong to one fictional person. Open each one and look closely.', 'Work out the weak password they chose, then: submit <code>', 'COMMANDS:', ...COMMANDS],
   hints: () => st.hints.length ? st.hints.map(h => `MESSAGE ${h.n}: ${h.text}`) : ['No messages released yet.'],
   status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : 'ACTIVE'} (${cls})`, `Time:   ${gstTime(Date.now())}`,
@@ -223,7 +222,7 @@ inp.addEventListener('keydown', async e => {
   if (cmd.toLowerCase() === 'submit') return submit(rest.join(' '));
   if (cmd.toLowerCase() === 'proximity') return proximity();
   const f = C[cmd.toLowerCase()];
-  f ? f().forEach(l => log(l)) : log(`Unknown command: ${cmd}. Type "help".`, 'err');
+  f ? f().forEach(l => log(l)) : log(`Unknown command: ${cmd}. See the command map above.`, 'err');
 });
 
 // ---- victory ----
@@ -276,6 +275,6 @@ async function ensureClass() {
   await ensureClass();
   await type('PassTrace // cybersecurity awareness exercise');
   await type('All people, sites and photos are fictional and created for this exercise.', 'dim');
-  await type(`Class ${cls} registered. Type "help".`);
+  await type(`Class ${cls} registered. Commands are listed above.`);
   inp.focus();
 })();
