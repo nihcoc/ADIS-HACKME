@@ -5,7 +5,9 @@ const post = (p, b) => fetch(p, { method: 'POST', headers: { 'Content-Type': 'ap
 function live() {
   $('#login').hidden = true; $('#panel').hidden = false;
   const es = new EventSource('/api/admin/stream');
+  let lastState = null;
   const render = s => {
+    lastState = s;
     $('#info').textContent = `Status: ${s.status.toUpperCase()} | Elapsed: ${fmt(s.elapsedMs)} | Players: ${s.players} | Messages released: ${s.hintsReleased}`;
     $('#board').checked = s.boardEnabled;
     $('#claimed').textContent = s.claimed.join(', ') || 'none';
@@ -30,9 +32,12 @@ function live() {
       $('#'+id).replaceChildren(header, ...body);
     };
     tableRows('best', ['CLASS', 'GUESS', 'SCORE', 'TIME'], s.bestGuesses || [], x => [x.cls || '', x.guess, `${x.tier} (${x.score}%)`, fmt(x.ms)]);
-    tableRows('waterfall', ['AT', 'CLASS', 'GUESS', 'SCORE', 'ELAPSED'], s.waterfall || [], x => [gst(x.at), x.cls || '', x.guess, `${x.tier} (${x.score}%)`, fmt(x.ms)]);
+    const waterfall = [...(s.waterfall || [])];
+    if ($('#waterfallSort').value === 'class') waterfall.sort((a, b) => (a.cls || '').localeCompare(b.cls || '', undefined, { numeric: true }) || Date.parse(b.at) - Date.parse(a.at));
+    tableRows('waterfall', ['AT', 'CLASS', 'GUESS', 'SCORE', 'ELAPSED'], waterfall, x => [gst(x.at), x.cls || '', x.guess, `${x.tier} (${x.score}%)`, fmt(x.ms)]);
     $('#msgInfo').textContent = s.hints && s.hints.length ? `Released: ${s.hints.map(h => h.text).join(' | ')}` : 'Nothing released yet.';
   };
+  $('#waterfallSort').addEventListener('change', () => lastState && render(lastState));
   let last = Date.now();
   es.addEventListener('state', e => { last = Date.now(); render(JSON.parse(e.data)); });
   const poll = () => fetch('/api/admin/state').then(r => r.json()).then(render).catch(() => {});

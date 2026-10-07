@@ -97,52 +97,19 @@ footer{text-align:center;font-size:10px;color:var(--d);padding:6px 8px 10px;opac
 
 .cmts{margin-top:10px;font-size:13px;border-top:1px solid #ddd;padding-top:6px}.cmts p{margin:5px 0}.cmts small{color:#888;margin-left:8px}
 
-/* Admin operations console */
-body.admin{--g:#a8ffdc;--d:#285a54;--bg:#071310;--r:#ff6e86;min-height:100vh;background:radial-gradient(ellipse at 12% 0%,#15342e 0,transparent 42%),radial-gradient(ellipse at 90% 16%,#16233c 0,transparent 35%),#071310;color:#e7fff6}
-.admin .scan{opacity:.22;z-index:1}
-.admin-header{position:relative;z-index:2;max-width:1240px;margin:0 auto;padding:24px 28px;border-bottom:1px solid #ffffff17}
-.admin-header h1{font-size:clamp(23px,4vw,34px);letter-spacing:.15em;color:#f4fff9}
-.eyebrow{display:block;color:#7ee7c5;font-size:10px;letter-spacing:.18em;font-weight:bold;margin-bottom:7px}
-.live-mark{display:flex;align-items:center;gap:8px;color:#a8c7bb;font-size:11px;letter-spacing:.12em}
-.live-mark i{width:8px;height:8px;border-radius:50%;background:#6bffc7;box-shadow:0 0 12px #6bffc7;animation:bl 1.5s infinite}
-.admin-main{position:relative;z-index:2;display:block!important;max-width:1240px;margin:0 auto;padding:24px 28px 50px;min-height:0}
-.admin #login{max-width:440px;margin:8vh auto}
+.admin-main{display:block!important;max-width:1100px;margin:auto}
 .admin #panel[hidden]{display:none!important}
 .admin #panel:not([hidden]){display:block;border:0;padding:0}
-.admin-card{background:linear-gradient(145deg,#12251fef,#0d1d19f5);border:1px solid #a8ffdc22;border-radius:14px;padding:20px;box-shadow:0 16px 40px #0003,inset 0 1px #ffffff09;min-width:0}
-.admin-card h2{font-size:16px;letter-spacing:.04em;margin:0 0 16px;color:#f1fff8}
-.admin-card h2 small{font-size:10px;color:#91b6a9;font-weight:normal;letter-spacing:.1em;text-transform:uppercase;margin-left:8px}
-.admin-topline{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:3px 2px 20px}
-.admin-topline #info{margin:0;color:#c6e9dc;font-size:13px}
-.board-toggle{display:flex;align-items:center;gap:8px;color:#b8d6ca;font-size:12px;white-space:nowrap}
-.board-toggle input{flex:0 0 auto;accent-color:#74efbd}
-.admin-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
-.control-card{grid-column:span 7}.closest-card{grid-column:span 5}.message-card{grid-column:span 7}.network-card{grid-column:span 5}.solvers-card{grid-column:span 5}.class-card{grid-column:span 7}.waterfall-card{grid-column:1/-1}
-.admin .action-row{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px}
-.admin button{border-color:#61d9ad66;color:#c8ffe9;border-radius:7px;padding:7px 11px;font-size:11px;letter-spacing:.08em;transition:background .15s,border-color .15s,transform .15s}
-.admin button:hover{background:#68e6b51b;border-color:#80ffd0;transform:translateY(-1px)}
-.admin button.danger{border-color:#ff6e8666;color:#ff9cab}.admin button.danger:hover{background:#ff6e8618;border-color:#ff8298}
-.admin button.quiet{border-color:#ffffff22;color:#afc8bd}
-.form-row{display:flex;align-items:center;flex-wrap:wrap;gap:9px;border-top:1px solid #ffffff12;padding:13px 0 3px}
-.form-row label{display:flex;flex:1 0 100%;gap:9px;align-items:center;color:#c6e9dc;font-size:12px}
-.form-row label small,.muted{color:#83a89a;font-size:11px}
-.form-row label span{color:#9dbbb0;overflow-wrap:anywhere}
-.admin input:not([type=checkbox]),.admin textarea{background:#071510;border:1px solid #8fe9c52a;border-radius:7px;color:#e7fff6;padding:9px 10px;min-width:0}
-.admin input[type=datetime-local]{flex:1 1 180px}
-.admin input::placeholder,.admin textarea::placeholder{color:#67877c}
-.admin .row{border:0;padding:0;align-items:center}
-.admin .row input{min-width:0}
-.top-guess{display:flex;flex-direction:column;gap:13px;min-height:96px;justify-content:center;margin:0;padding:16px;border:1px solid #7ef0c044;border-radius:10px;background:radial-gradient(ellipse at 0 0,#62e8b51c,transparent 70%),#071510;color:#d9fff0;overflow-wrap:anywhere}
-.top-guess strong{font-size:clamp(18px,2vw,27px);line-height:1.25;color:#9dffd5}
-.top-guess span{font-size:11px;letter-spacing:.08em;color:#a3cbb9}
-.message-card textarea{display:block;resize:vertical;min-height:86px}
-.message-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}
-#msgInfo{overflow-wrap:anywhere}
-.network-card #network{margin:0;padding:15px;border-radius:9px;background:#071510;color:#bfe9d8;font-size:13px;line-height:1.8}
-.admin table{width:100%;table-layout:fixed;font-size:11px;color:#d6eee4}
-.admin th{color:#7de3bd;font-size:9px;letter-spacing:.1em;font-weight:normal}
-.admin th,.admin td{border-color:#ffffff14;padding:8px 7px;vertical-align:top}
-.admin td{overflow-wrap:anywhere}
-.admin tr:hover td{background:#b5ffdf08}
-.admin-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ffffff18;margin-top:16px;padding-top:14px}
-@media(max-width:780px){.admin-header,.admin-main{padding-left:16px;padding-right:16px}.admin-grid{grid-template-columns:1fr}.control-card,.closest-card,.message-card,.network-card,.solvers-card,.class-card,.waterfall-card{grid-column:1}.admin-topline{align-items:flex-start;flex-direction:column}.board-toggle{white-space:normal}.admin-card{padding:16px}.form-row{align-items:stretch}.message-actions{align-items:flex-start;flex-direction:column}}
+.admin-summary{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--d);padding:8px 10px;margin-bottom:10px}
+.admin-summary p{margin:0}
+.admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.admin-card{border:1px solid var(--d);padding:10px;min-width:0}
+.admin-card h2{margin:0 0 8px;font-size:15px;border-bottom:1px solid var(--d);padding-bottom:4px}
+.admin-card h3{margin:8px 0 4px;font-size:13px}
+.admin-card input:not([type=checkbox]){border-bottom:1px solid var(--d)}
+.admin-card textarea{display:block;resize:vertical;margin:6px 0}
+.admin-waterfall{grid-column:1/-1}
+.waterfall-tools{margin:0 0 8px;font-size:12px}
+.waterfall-tools select{background:var(--bg);color:var(--g);border:1px solid var(--d);font:inherit;padding:3px 6px}
+.admin-logout{display:flex;justify-content:flex-end}
+@media(max-width:800px){.admin-grid{grid-template-columns:1fr}.admin-waterfall{grid-column:auto}}
