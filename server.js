@@ -75,7 +75,7 @@ app.get('/api/puzzle', (req, res) => {
   try { res.json(JSON.parse(fs.readFileSync(PUZZLE_FILE, 'utf8'))); } catch { res.status(500).json({ error: 'PUZZLE UNAVAILABLE' }); }
 });
 
-const CLASS_RE = /^(9|10|11|12)[A-G]$/;
+const CLASS_RE = /^(?:(?:9|10)[A-H]|(?:11|12)[A-G])$/;
 const classOf = p => Object.keys(S.claims).find(k => S.claims[k] === p) || null;
 const guesses = new Map(), pxUsed = new Map(), telemetry = new Map(); // per player: guesses, proximity checks, network stats
 
