@@ -7,28 +7,30 @@ const PUZZLE_FILE = path.join(__dirname, 'data', 'puzzle.json');
 const { SESSION_SECRET, ADMIN_PASSWORD, FINAL_CODE } = E;
 if (!SESSION_SECRET || !ADMIN_PASSWORD || !FINAL_CODE) { console.error('Set SESSION_SECRET, ADMIN_PASSWORD and FINAL_CODE.'); process.exit(1); }
 
-const env = (k, d) => (E[k] && !E[k].startsWith('replace-with') ? E[k] : d);
-const HINTS = [
-  env('HINT_1', 'Not everything worth noticing is the first thing you see.'),
-  env('HINT_2', 'Different places show different sides of the same life. Some details are easy to read past.'),
-  env('HINT_3', 'A name close to him and a year that mattered to him often end up joined in a careless password.')
-];
-const parseTimes = s => { const a = String(s).split(',').map(Number); return a.length === 3 && a.every(n => isFinite(n) && n >= 0 && n <= 600) ? a : null; };
-
 const LIMIT = Math.max(1, parseInt(E.AUTO_END_AFTER, 10) || 3); // game auto-ends after this many solvers
 // ---- state (memory + JSON file) ----
-let S = { status: 'waiting', accum: 0, since: null, times: parseTimes(E.HINT_TIMES_MINUTES) || [10, 20, 30], board: false, solvers: [], startAt: null, claims: {} };
+let S = { status: 'waiting', accum: 0, since: null, board: false, solvers: [], startAt: null, claims: {}, hints: [] };
 try { Object.assign(S, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch {}
+if (!Array.isArray(S.hints)) S.hints = [];
 const save = () => { try { fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true }); fs.writeFileSync(STATE_FILE, JSON.stringify(S)); } catch (e) { console.error('persist failed', e.message); } };
 const elapsed = () => S.accum + (S.status === 'running' ? Date.now() - S.since : 0);
-const released = () => S.status === 'waiting' ? [] : HINTS.map((text, i) => ({ n: i + 1, text, at: S.times[i] * 6e4 })).filter(h => elapsed() >= h.at).map(({ n, text }) => ({ n, text }));
+const released = () => S.hints.map((h, i) => ({ id: h.id || String(i + 1), n: i + 1, text: h.text }));
 
 const pc = new Set(), ac = new Set();
 function snap(admin) {
-  const el = elapsed(), hs = released(), next = S.times.map(t => t * 6e4).find(t => t > el);
-  const s = { status: S.status, elapsedMs: el, hints: hs, nextHintMs: S.status !== 'waiting' && next !== undefined ? next - el : null,
+  const el = elapsed(), hs = released();
+  const s = { status: S.status, elapsedMs: el, hints: hs,
     players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, firstCls: S.solvers.length ? S.solvers[0].cls : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })) : null };
-  if (admin) Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })), times: S.times, claimed: Object.keys(S.claims).sort(), boardEnabled: S.board, hintsReleased: hs.length });
+  if (admin) {
+    const recent = [...(S.guessWaterfall || [])].slice(-40).reverse();
+    const best = new Map();
+    for (const g of S.guessWaterfall || []) if (!best.has(g.cls) || g.score > best.get(g.cls).score) best.set(g.cls, g);
+    const pings = [...telemetry.values()].filter(x => Date.now() - x.seen < 30000);
+    const pingVals = pings.map(x => x.ping).filter(Number.isFinite);
+    Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })), claimed: Object.keys(S.claims).sort(), boardEnabled: S.board, hintsReleased: hs.length,
+      hints: hs, bestGuesses: [...best.values()].sort((a, b) => b.score - a.score), waterfall: recent,
+      network: { online: pings.length, avgPing: pingVals.length ? Math.round(pingVals.reduce((a, b) => a + b, 0) / pingVals.length) : null, maxPing: pingVals.length ? Math.max(...pingVals) : null } });
+  }
   return s;
 }
 const send = (r, d) => r.write(`event: state\ndata: ${JSON.stringify(d)}\n\n`);
@@ -69,7 +71,7 @@ app.get('/api/puzzle', (req, res) => {
 
 const CLASS_RE = /^(9|10|11|12)[A-G]$/;
 const classOf = p => Object.keys(S.claims).find(k => S.claims[k] === p) || null;
-const guesses = new Map(), pxUsed = new Map(); // per player: wrong guesses, proximity checks used
+const guesses = new Map(), pxUsed = new Map(), telemetry = new Map(); // per player: guesses, proximity checks, network stats
 
 // Closeness of a guess to FINAL_CODE, 0-100. Works for ANY password: it only compares characters.
 // 60% "coverage" = share of the password found in the guess as shared chunks (2+ chars, each char used once)
@@ -117,7 +119,21 @@ app.post('/api/submit', subLimit, (req, res) => {
     return res.json({ ok: true, ms, rank: S.solvers.length });
   }
   const gs = guesses.get(req.pid) || []; gs.push({ g: code.trim(), s: score(code.trim()) }); guesses.set(req.pid, gs.slice(-200));
+  const sc = score(code.trim());
+  if (!Array.isArray(S.guessWaterfall)) S.guessWaterfall = [];
+  S.guessWaterfall.push({ cls, guess: code.trim(), score: sc, tier: tier(sc), ms: elapsed(), at: new Date().toISOString() });
+  if (S.guessWaterfall.length > 500) S.guessWaterfall.splice(0, S.guessWaterfall.length - 500);
+  save();
+  broadcast();
   res.status(401).json({ error: 'ACCESS DENIED' });
+});
+
+app.post('/api/ping', subLimit, (req, res) => {
+  const cls = classOf(req.pid), ping = Number(req.body && req.body.ping);
+  if (!cls || !Number.isFinite(ping) || ping < 0 || ping > 60000) return res.status(400).json({ error: 'INVALID PING' });
+  const old = telemetry.get(req.pid), samples = [...(old ? old.samples : []), Math.round(ping)].slice(-10);
+  telemetry.set(req.pid, { cls, ping: Math.round(samples.reduce((a, b) => a + b, 0) / samples.length), samples, seen: Date.now() });
+  res.json({ ok: true });
 });
 
 app.get('/api/classes', (req, res) => res.json({ taken: Object.keys(S.claims), mine: classOf(req.pid) }));
@@ -162,13 +178,12 @@ app.post('/api/admin/action', need, (req, res) => {
   else if (a === 'pause' && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'paused' });
   else if (a === 'resume' && S.status === 'paused') Object.assign(S, { status: 'running', since: now });
   else if (a === 'end' && (S.status === 'running' || S.status === 'paused')) Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
-  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null, claims: {} }); guesses.clear(); pxUsed.clear(); }
+  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null, claims: {}, hints: [], guessWaterfall: [] }); guesses.clear(); pxUsed.clear(); telemetry.clear(); }
   else return res.status(400).json({ error: 'INVALID ACTION' });
   save(); broadcast(); res.json({ ok: true });
 });
 app.post('/api/admin/config', need, (req, res) => {
-  const { times, board, startAt } = req.body || {};
-  if (times !== undefined) { const t = Array.isArray(times) ? parseTimes(times.join(',')) : null; if (!t) return res.status(400).json({ error: 'INVALID TIMES' }); S.times = t; }
+  const { board, startAt } = req.body || {};
   if (startAt !== undefined) {
     if (S.status !== 'waiting') return res.status(400).json({ error: 'EVENT ALREADY STARTED' });
     if (startAt === null) S.startAt = null;
@@ -183,6 +198,14 @@ app.post('/api/admin/release', need, (req, res) => {
   const c = req.body && req.body.cls;
   if (typeof c !== 'string' || !S.claims[c]) return res.status(400).json({ error: 'NOT CLAIMED' });
   delete S.claims[c]; save(); broadcast(); res.json({ ok: true });
+});
+
+app.post('/api/admin/message', need, (req, res) => {
+  const text = typeof (req.body && req.body.text) === 'string' ? req.body.text.trim() : '';
+  if (!text || text.length > 500) return res.status(400).json({ error: 'MESSAGE MUST BE 1–500 CHARACTERS' });
+  if (S.hints.length >= 100) return res.status(400).json({ error: 'MESSAGE LIMIT REACHED; RESET THE EVENT TO CLEAR MESSAGES' });
+  S.hints.push({ id: crypto.randomBytes(8).toString('hex'), text, at: new Date().toISOString() });
+  save(); broadcast(); res.json({ ok: true, n: S.hints.length });
 });
 
 // ---- static files: served from the project root (no public/ folder) ----

@@ -17,7 +17,7 @@ function popup(h) { hq.push(h); if (!$('#hp')) nextPop(); }
 function nextPop() {
   const h = hq.shift(); if (!h) return;
   const d = document.createElement('div'); d.id = 'hp';
-  d.innerHTML = `<div class="box"><h3>HINT ${h.n} UNLOCKED</h3><p>${esc(h.text)}</p><button>GOT IT</button></div>`;
+  d.innerHTML = `<div class="box"><h3>MESSAGE ${h.n} RELEASED</h3><p>${esc(h.text)}</p><button>GOT IT</button></div>`;
   d.querySelector('button').addEventListener('click', () => { d.remove(); nextPop(); });
   document.body.appendChild(d);
 }
@@ -40,7 +40,7 @@ const MSG = { running: '>> EVENT STARTED. Systems unlocked.', paused: '>> EVENT 
 function onState(d) {
   d.rx = Date.now(); const o = st; st = d; bar();
   if (o && o.status !== st.status) log(MSG[st.status], st.status === 'waiting' || st.status === 'ended' ? 'err' : 'ok');
-  if (o) st.hints.filter(h => !o.hints.some(x => x.n === h.n)).forEach(h => { log(`[HINT ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
+  if (o) st.hints.filter(h => !o.hints.some(x => h.id ? x.id === h.id : x.n === h.n)).forEach(h => { log(`[MESSAGE ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
   if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)} by ${st.firstCls || 'a class'}. The race is on.`, 'ok');
   if (st.status === 'ended' && (!o || o.status !== 'ended')) showFinal();
   if (st.status === 'waiting') { puz = null; solved = false; $('#win').hidden = true; waiting(); if (o && o.status !== 'waiting') ensureClass(); }
@@ -57,6 +57,16 @@ async function load() {
   const r = await fetch('/api/puzzle'); if (!r.ok) return;
   puz = await r.json(); solved = (await (await fetch('/api/event')).json()).solved; desk();
 }
+async function sendPing() {
+  const start = performance.now();
+  try {
+    const r = await fetch('/api/event', { cache: 'no-store' });
+    if (!r.ok) return;
+    const ping = Math.round(performance.now() - start);
+    await fetch('/api/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ping }) });
+  } catch {}
+}
+sendPing(); setInterval(sendPing, 10000);
 
 // ---- fictional sites ----
 const img = (s, a = '') => `<img src="${esc(s)}" alt="${esc(a)}">`;
@@ -115,7 +125,7 @@ function waiting() {
     <li>You can solve once. Rank is decided by finishing time.</li>
     <li>Proximity: type <b>proximity</b> to see your hottest and coldest guess so far, rated COLD, WARM or HOT. You get 5 proximity checks.</li>
     <li>The event ends automatically once the first ${st.limit || 3} players solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
-    <li>Hints unlock for everyone at fixed times after the start. Type <b>hints</b> to read them.</li>
+    <li>Admins can release hints or messages live. Type <b>hints</b> to read released messages.</li>
     <li>The first correct submission is announced live to all players.</li>
     <li>Play fair: do not share answers, and do not attack the server or any real person or account.</li>
   </ol>
@@ -139,9 +149,9 @@ function desk() {
 const C = {
   help: () => ['help            show commands', 'legend          how this exercise works', 'hints           show released hints', 'status          event, timer and hint status', 'submit <code>  submit your answer', 'proximity       hottest and coldest of your guesses (5 checks)', 'clear           clear the screen'],
   legend: () => ['All people, sites and photos here are fictional and made for this exercise.', 'Three public profiles belong to one fictional person. Open each one and look closely.', 'Work out the weak password they chose, then: submit <code>'],
-  hints: () => st.hints.length ? st.hints.map(h => `HINT ${h.n}: ${h.text}`) : ['No hints released yet.'],
+  hints: () => st.hints.length ? st.hints.map(h => `MESSAGE ${h.n}: ${h.text}`) : ['No messages released yet.'],
   status: () => [`Event:  ${LABEL[st.status]}`, `Elapsed: ${fmt(st.elapsedMs)}`, `Player: ${solved ? 'SOLVED' : 'ACTIVE'} (${cls})`, `Time:   ${gstTime(Date.now())}`,
-    `Hints:  ${st.hints.length}/3 released` + (st.nextHintMs != null ? `, next in ${fmt(st.nextHintMs)}` : '')],
+    `Messages: ${st.hints.length} released`],
   clear: () => { out.innerHTML = ''; return []; }
 };
 async function proximity() {

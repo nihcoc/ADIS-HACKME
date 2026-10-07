@@ -11,9 +11,14 @@
   <p>Start time (GST): <input type="datetime-local" id="sched" style="border-bottom:1px solid var(--d)"> <button id="ss">SCHEDULE</button> <button id="sc">CLEAR</button> <span id="sinfo"></span></p>
   <p>Claimed classes: <span id="claimed"></span></p>
   <p>Release a class: <input id="rel" size="4" style="border-bottom:1px solid var(--d)"> <button id="rb">RELEASE</button></p>
-  <p>Hint times (minutes): <input id="times" style="border-bottom:1px solid var(--d);max-width:140px"> <button id="st">SAVE</button></p>
+  <h3>LIVE MESSAGE / HINT</h3>
+  <p><textarea id="message" rows="3" maxlength="500" placeholder="Write a hint or announcement for all players"></textarea> <button id="releaseMessage">RELEASE TO ALL</button></p>
+  <p id="msgInfo" class="dim">Nothing released yet.</p>
   <p><label><input type="checkbox" id="board"> Public leaderboard</label></p>
   <h3>SOLVERS</h3><table id="sv" style="width:100%"></table>
+  <h3>NETWORK</h3><p id="network"></p>
+  <h3>CLOSEST GUESS BY CLASS</h3><table id="best" style="width:100%"></table>
+  <h3>GUESS WATERFALL <small>(latest first)</small></h3><table id="waterfall" style="width:100%"></table>
   <p><button id="lo">LOGOUT</button></p>
 </section></main>
 <script src="/js/admin.js"></script></body></html>

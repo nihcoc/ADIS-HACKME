@@ -18,6 +18,9 @@ section{border:1px solid var(--d);padding:10px;min-width:0}
 #out .err,.err{color:var(--r)}#out .ok{color:#fff}#out .hint{color:#ffd34d}#out .dim{color:var(--d)}
 .row{display:flex;gap:6px;border-top:1px solid var(--d);padding-top:8px}
 input{flex:1;background:none;border:0;color:var(--g);font:inherit;outline:0;caret-color:var(--g)}
+textarea{width:100%;background:#020603;border:1px solid var(--d);color:var(--g);font:inherit;padding:8px;vertical-align:middle}
+table{border-collapse:collapse}th,td{border-bottom:1px solid var(--d);padding:4px 6px;text-align:left;overflow-wrap:anywhere}
+#best,#waterfall{width:100%;table-layout:fixed}
 button{background:none;border:1px solid var(--g);color:var(--g);font:inherit;padding:4px 12px;cursor:pointer}
 .shake{animation:sh .45s}
 @keyframes sh{20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
