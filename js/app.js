@@ -179,7 +179,7 @@ function desk() {
 }
 
 // ---- commands ----
-const COMMANDS = ['legend          how this exercise works', 'hints           show released messages', 'status          event, timer and message status', 'submit <code>  submit your answer', 'proximity       hottest and coldest of your guesses (5 checks)', 'clear           clear the screen'];
+const COMMANDS = ['legend: how this exercise works', 'hints: show released messages', 'status: event, timer and message status', 'submit <code>: submit your answer', 'proximity: hottest and coldest of your guesses (5 checks)', 'clear: clear the screen'];
 const commandList = $('#commandList');
 if (commandList) COMMANDS.forEach(command => {
   const item = document.createElement('div');
