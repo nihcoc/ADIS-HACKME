@@ -22,13 +22,14 @@ function snap(admin) {
   const s = { status: S.status, elapsedMs: el, hints: hs,
     players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, firstCls: S.solvers.length ? S.solvers[0].cls : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })) : null };
   if (admin) {
-    const recent = [...(S.guessWaterfall || [])].slice(-40).reverse();
+    const recent = [...(S.guessWaterfall || [])].slice(-10).reverse();
     const best = new Map();
     for (const g of S.guessWaterfall || []) if (!best.has(g.cls) || g.score > best.get(g.cls).score) best.set(g.cls, g);
+    const overallBest = [...best.values()].sort((a, b) => b.score - a.score)[0] || null;
     const pings = [...telemetry.values()].filter(x => Date.now() - x.seen < 30000);
     const pingVals = pings.map(x => x.ping).filter(Number.isFinite);
     Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })), claimed: Object.keys(S.claims).sort(), boardEnabled: S.board, hintsReleased: hs.length,
-      hints: hs, bestGuesses: [...best.values()].sort((a, b) => b.score - a.score), waterfall: recent,
+      hints: hs, closestGuess: overallBest, bestGuesses: [...best.values()].sort((a, b) => b.score - a.score), waterfall: recent,
       network: { online: pings.length, avgPing: pingVals.length ? Math.round(pingVals.reduce((a, b) => a + b, 0) / pingVals.length) : null, maxPing: pingVals.length ? Math.max(...pingVals) : null } });
   }
   return s;

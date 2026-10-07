@@ -1,24 +1,27 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HACKME // ADMIN</title>
 <link rel="stylesheet" href="/css/style.css"></head>
-<body><div class="scan"></div>
-<header><h1>ADMIN CONSOLE</h1></header>
-<main style="grid-template-columns:1fr;max-width:760px;margin:auto">
-<section id="login"><p>Admin password</p><div class="row"><input id="pw" type="password" autocomplete="current-password" aria-label="admin password"><button id="go">LOGIN</button></div><p id="lerr" class="err"></p></section>
+<body class="admin"><div class="scan"></div>
+<header class="admin-header"><div><span class="eyebrow">HACKME // EVENT OPERATIONS</span><h1>ADMIN CONSOLE</h1></div><span class="live-mark"><i></i> LIVE MONITOR</span></header>
+<main class="admin-main">
+<section id="login" class="admin-card login-card"><span class="eyebrow">SECURE ACCESS</span><h2>Operator sign in</h2><div class="row"><input id="pw" type="password" autocomplete="current-password" aria-label="admin password" placeholder="Admin password"><button id="go">LOGIN</button></div><p id="lerr" class="err"></p></section>
 <section id="panel" hidden>
-  <p id="info"></p>
-  <p><button data-a="start">START</button> <button data-a="pause">PAUSE</button> <button data-a="resume">RESUME</button> <button data-a="end">END</button> <button data-a="reset">RESET</button></p>
-  <p>Start time (GST): <input type="datetime-local" id="sched" style="border-bottom:1px solid var(--d)"> <button id="ss">SCHEDULE</button> <button id="sc">CLEAR</button> <span id="sinfo"></span></p>
-  <p>Claimed classes: <span id="claimed"></span></p>
-  <p>Release a class: <input id="rel" size="4" style="border-bottom:1px solid var(--d)"> <button id="rb">RELEASE</button></p>
-  <h3>LIVE MESSAGE / HINT</h3>
-  <p><textarea id="message" rows="3" maxlength="500" placeholder="Write a hint or announcement for all players"></textarea> <button id="releaseMessage">RELEASE TO ALL</button></p>
-  <p id="msgInfo" class="dim">Nothing released yet.</p>
-  <p><label><input type="checkbox" id="board"> Public leaderboard</label></p>
-  <h3>SOLVERS</h3><table id="sv" style="width:100%"></table>
-  <h3>NETWORK</h3><p id="network"></p>
-  <h3>CLOSEST GUESS BY CLASS</h3><table id="best" style="width:100%"></table>
-  <h3>GUESS WATERFALL <small>(latest first)</small></h3><table id="waterfall" style="width:100%"></table>
-  <p><button id="lo">LOGOUT</button></p>
+  <div class="admin-topline"><div><span class="eyebrow">LIVE EVENT</span><p id="info"></p></div><label class="board-toggle"><input type="checkbox" id="board"> Public leaderboard</label></div>
+  <div class="admin-grid">
+    <section class="admin-card control-card"><span class="eyebrow">01 / CONTROL</span><h2>Event controls</h2>
+      <div class="action-row"><button data-a="start">START</button><button data-a="pause">PAUSE</button><button data-a="resume">RESUME</button><button data-a="end">END</button><button data-a="reset" class="danger">RESET</button></div>
+      <div class="form-row"><label for="sched">Start time <small>GST</small></label><input type="datetime-local" id="sched"><button id="ss">SCHEDULE</button><button id="sc" class="quiet">CLEAR</button></div><p id="sinfo" class="muted"></p>
+      <div class="form-row"><label for="rel">Claimed classes <span id="claimed"></span></label><input id="rel" size="5" placeholder="e.g. 10A"><button id="rb">RELEASE CLASS</button></div>
+    </section>
+    <section class="admin-card closest-card"><span class="eyebrow">02 / RACE INTELLIGENCE</span><h2>Closest guess so far</h2><p id="topGuess" class="top-guess">No guesses yet.</p><p class="muted">Best match across all classes</p></section>
+    <section class="admin-card message-card"><span class="eyebrow">03 / PLAYER COMMS</span><h2>Live message / hint</h2>
+      <textarea id="message" rows="3" maxlength="500" placeholder="Write a hint or announcement for all players"></textarea><div class="message-actions"><span id="msgInfo" class="muted">Nothing released yet.</span><button id="releaseMessage">RELEASE TO ALL</button></div>
+    </section>
+    <section class="admin-card network-card"><span class="eyebrow">04 / CONNECTIONS</span><h2>Network pulse</h2><p id="network"></p></section>
+    <section class="admin-card solvers-card"><span class="eyebrow">05 / FINISHERS</span><h2>Solvers</h2><table id="sv"></table></section>
+    <section class="admin-card class-card"><span class="eyebrow">06 / CLASS RANKING</span><h2>Closest guess by class</h2><table id="best"></table></section>
+    <section class="admin-card waterfall-card"><span class="eyebrow">07 / LIVE FEED</span><h2>Guess waterfall <small>latest 10</small></h2><table id="waterfall"></table></section>
+  </div>
+  <div class="admin-footer"><span class="muted">HACKME // OPERATOR VIEW</span><button id="lo" class="quiet">LOG OUT</button></div>
 </section></main>
 <script src="/js/admin.js"></script></body></html>

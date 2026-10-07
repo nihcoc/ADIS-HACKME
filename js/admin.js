@@ -10,7 +10,18 @@ function live() {
     $('#board').checked = s.boardEnabled;
     $('#claimed').textContent = s.claimed.join(', ') || 'none';
     $('#sinfo').textContent = s.startAt ? 'Scheduled: ' + gst(s.startAt) : 'Not scheduled';
-    $('#sv').replaceChildren(...s.solvers.map(x => { const tr = document.createElement('tr'); [x.rank, x.cls || '', fmt(x.ms), gst(x.at)].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); return tr; }));
+    const solverHead = document.createElement('tr');
+    ['RANK', 'CLASS', 'TIME', 'SOLVED AT'].forEach(v => { const th = document.createElement('th'); th.textContent = v; solverHead.appendChild(th); });
+    const solverRows = s.solvers.length ? s.solvers.map(x => { const tr = document.createElement('tr'); [x.rank, x.cls || '', fmt(x.ms), gst(x.at)].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); return tr; }) : [(() => { const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 4; td.textContent = 'No solvers yet.'; tr.appendChild(td); return tr; })()];
+    $('#sv').replaceChildren(solverHead, ...solverRows);
+    const top = $('#topGuess');
+    if (s.closestGuess) {
+      top.replaceChildren();
+      const guess = document.createElement('strong'), meta = document.createElement('span');
+      guess.textContent = s.closestGuess.guess;
+      meta.textContent = `CLASS ${s.closestGuess.cls}  ·  ${s.closestGuess.tier} ${s.closestGuess.score}%  ·  ${fmt(s.closestGuess.ms)}`;
+      top.append(guess, meta);
+    } else top.textContent = 'No guesses yet.';
     $('#network').textContent = `Players reporting: ${s.network.online} | Average ping: ${s.network.avgPing == null ? '—' : `${s.network.avgPing} ms`} | Highest ping: ${s.network.maxPing == null ? '—' : `${s.network.maxPing} ms`}`;
     const tableRows = (id, heads, items, fields) => {
       const header = document.createElement('tr');
