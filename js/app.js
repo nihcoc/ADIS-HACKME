@@ -106,7 +106,8 @@ const cmts = p => p.comments && p.comments.length ? `<div class="cmts"><b>Commen
 const SITES = {
   grammie() {
     const g = puz.grammie;
-    return `<div class="gh"><div class="av">${img(g.avatar)}</div><div><div class="gidentity"><h3>${esc(puz.person.name)}</h3><b>@${esc(g.username)}</b></div><p>${esc(g.bio)}</p><p><b>${g.followers}</b> followers &nbsp; <b>${g.following}</b> following</p></div></div>
+    const bio = esc(g.bio).replace(/\n/g, '<br>').replace('@idk.dosa', '<span class="bio-link">@idk.dosa</span>');
+    return `<div class="gh"><div class="av">${img(g.avatar)}</div><div><div class="gidentity"><h3>${esc(puz.person.name)}</h3><b>@${esc(g.username)}</b></div><p>${bio}</p><p><b>${g.followers}</b> followers &nbsp; <b>${g.following}</b> following</p></div></div>
     <div class="grid">${g.posts.map((p, i) => `<button class="post" data-i="${i}" aria-label="Open post ${i + 1}">${img(p.image)}</button>`).join('')}</div><div id="pd"></div>`;
   },
   linkout() {

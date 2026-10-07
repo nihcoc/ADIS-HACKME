@@ -49,6 +49,7 @@ button:focus-visible{outline:2px solid #b6ffd6;outline-offset:2px}
 .post{padding:0;border:0!important;background:none}
 #pd{margin-top:12px}
 .s-grammie h3{background:linear-gradient(45deg,#f9a03f,#dd2a7b,#8134af);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
+.s-grammie .bio-link{color:#1877f2;text-decoration:underline}
 .s-linkout{background:#f3f2ef!important}
 .lb{background:#fff;border:1px solid #ddd;border-radius:6px;padding:12px;margin-bottom:8px}
 .lb .ban{height:70px;background:linear-gradient(90deg,#0a66c2,#70b5f9);margin:-12px -12px 0;border-radius:6px 6px 0 0}
