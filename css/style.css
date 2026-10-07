@@ -91,7 +91,7 @@ pre.sub{border:1px dashed var(--d);padding:10px;margin:0 0 8px;white-space:pre-w
 .lbt tr:nth-child(2){color:#ffd34d}
 
 .brand{display:flex;flex-direction:column;gap:2px}
-.org{font-size:11px;letter-spacing:2px;color:var(--d)}
+.org{font-size:12px;font-weight:600;letter-spacing:2px;color:var(--d)}
 footer{text-align:center;font-size:10px;color:var(--d);padding:6px 8px 10px;opacity:.85}
 
 #cls{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:12px;background:#020603}
