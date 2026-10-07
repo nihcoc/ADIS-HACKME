@@ -7,6 +7,13 @@ const gstDay = t => new Date(t).toLocaleString('en-GB', { ...GST, weekday: 'shor
 const LABEL = { waiting: 'EVENT NOT STARTED', running: 'EVENT LIVE', paused: 'EVENT PAUSED', ended: 'EVENT ENDED' };
 let st = null, puz = null, solved = false, cls = '', rainT, winning = false;
 
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  b.classList.remove('clicked'); void b.offsetWidth; b.classList.add('clicked');
+  setTimeout(() => b.classList.remove('clicked'), 260);
+});
+
 function log(t, c = '') { const d = document.createElement('div'); d.className = c; d.textContent = t; out.appendChild(d); out.scrollTop = out.scrollHeight; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function type(t, c = '') { const d = document.createElement('div'); d.className = c; out.appendChild(d); for (const ch of t) { d.textContent += ch; await sleep(10); } out.scrollTop = out.scrollHeight; }
@@ -20,6 +27,27 @@ function nextPop() {
   d.innerHTML = `<div class="box"><h3>MESSAGE ${h.n} RELEASED</h3><p>${esc(h.text)}</p><button>GOT IT</button></div>`;
   d.querySelector('button').addEventListener('click', () => { d.remove(); nextPop(); });
   document.body.appendChild(d);
+}
+
+// ---- event transition overlay ----
+let overlayTimer = null;
+function eventOverlay(mode) {
+  const el = $('#eventOverlay');
+  clearInterval(overlayTimer); overlayTimer = null;
+  if (mode === 'paused') {
+    el.className = 'event-overlay is-paused';
+    el.innerHTML = '<div class="event-overlay-card"><span class="event-kicker">EVENT STATUS</span><strong class="pause-symbol">Ⅱ</strong><span class="event-label">EVENT PAUSED</span><small>Waiting for the admin to resume</small></div>';
+    el.hidden = false; return;
+  }
+  if (mode !== 'running') { el.hidden = true; el.className = 'event-overlay'; return; }
+  el.className = 'event-overlay'; el.hidden = false;
+  let count = 3;
+  const draw = () => { el.innerHTML = `<div class="event-overlay-card"><span class="event-kicker">SYSTEMS UNLOCKING</span><strong class="count-number">${count > 0 ? count : 'GO'}</strong><span class="event-label">EVENT LIVE</span></div>`; };
+  draw();
+  overlayTimer = setInterval(() => {
+    count -= 1; draw();
+    if (count <= 0) { clearInterval(overlayTimer); overlayTimer = setTimeout(() => { el.hidden = true; overlayTimer = null; }, 650); }
+  }, 900);
 }
 
 // ---- live state ----
@@ -39,6 +67,9 @@ function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board 
 const MSG = { running: '>> EVENT STARTED. Systems unlocked.', paused: '>> EVENT PAUSED.', ended: '>> EVENT ENDED.', waiting: '>> EVENT RESET. Awaiting start.' };
 function onState(d) {
   d.rx = Date.now(); const o = st; st = d; bar();
+  if (st.status === 'running' && (!o || o.status !== 'running')) eventOverlay('running');
+  else if (st.status === 'paused' && (!o || o.status !== 'paused')) eventOverlay('paused');
+  else if (st.status === 'waiting' || st.status === 'ended') eventOverlay('hide');
   if (o && o.status !== st.status) log(MSG[st.status], st.status === 'waiting' || st.status === 'ended' ? 'err' : 'ok');
   if (o) st.hints.filter(h => !o.hints.some(x => h.id ? x.id === h.id : x.n === h.n)).forEach(h => { log(`[MESSAGE ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
   if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)} by ${st.firstCls || 'a class'}. The race is on.`, 'ok');
@@ -90,6 +121,8 @@ const SITES = {
   }
 };
 function site(n) {
+  const hosts = { grammie: 'grammie.social', linkout: 'linkout.network', hooked: 'hooked.app' };
+  const address = $('#browserAddress'); if (address) address.textContent = hosts[n];
   const v = $('#site'); v.className = 's-' + n; v.innerHTML = `<div class="sh">${ICON[n]}<b>${n.toUpperCase()}</b></div>` + SITES[n]();
   v.querySelectorAll('img').forEach(i => i.addEventListener('error', () => i.replaceWith(ph())));
   v.querySelectorAll('.post').forEach(b => b.addEventListener('click', () => {
@@ -140,7 +173,7 @@ function desk() {
   const d = $('#desk'); d.hidden = false;
   d.dataset.m = 'g'; d.innerHTML = `<span class="tag">FICTIONAL CYBERSECURITY TRAINING PROFILE</span><h2>${esc(puz.person.name)}</h2>
   <div id="fb"></div><nav id="apps">${appTiles(false)}</nav><div id="clues"><b>CLUES</b><ul><li>The password is related to his personal life.</li></ul></div>
-  <div id="site"><p>Select an application.</p></div><div id="board"></div>`;
+  <div class="browser-frame"><div class="browser-chrome"><div class="browser-dots"><i></i><i></i><i></i></div><div class="browser-address"><span>⌑</span><span id="browserAddress">Choose an application</span></div><span class="browser-menu">•••</span></div><div id="site"><p>Select an application.</p></div></div><div id="board"></div>`;
   d.querySelectorAll('#apps button').forEach(b => b.addEventListener('click', () => site(b.dataset.s)));
   boardUI();
 }

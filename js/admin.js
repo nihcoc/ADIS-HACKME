@@ -2,6 +2,12 @@ const $ = s => document.querySelector(s);
 const fmt = ms => { const s = Math.floor(ms / 1000); return [s / 3600 | 0, (s / 60) % 60 | 0, s % 60].map(n => String(n).padStart(2, '0')).join(':'); };
 const gst = t => new Date(t).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + ' GST';
 const post = (p, b) => fetch(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) });
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  b.classList.remove('clicked'); void b.offsetWidth; b.classList.add('clicked');
+  setTimeout(() => b.classList.remove('clicked'), 260);
+});
 function live() {
   $('#login').hidden = true; $('#panel').hidden = false;
   const es = new EventSource('/api/admin/stream');

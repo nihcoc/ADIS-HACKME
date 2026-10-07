@@ -52,7 +52,12 @@ const eq = (a, b) => { const h = x => crypto.createHash('sha256').update(String(
 const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
-app.use(helmet({ contentSecurityPolicy: { useDefaults: true, directives: { 'upgrade-insecure-requests': null } } }));
+app.use(helmet({ contentSecurityPolicy: { useDefaults: true, directives: {
+  'upgrade-insecure-requests': null,
+  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+  connectSrc: ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com']
+} } }));
 app.use(express.json({ limit: '2kb' }));
 app.use(cookieParser(SESSION_SECRET));
 const ck = { httpOnly: true, signed: true, sameSite: 'strict', secure: E.COOKIE_SECURE === 'true' };
