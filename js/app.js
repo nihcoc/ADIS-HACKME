@@ -67,7 +67,7 @@ function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board 
 const MSG = { running: '>> EVENT STARTED. Systems unlocked.', paused: '>> EVENT PAUSED.', ended: '>> EVENT ENDED.', waiting: '>> EVENT RESET. Awaiting start.' };
 function onState(d) {
   d.rx = Date.now(); const o = st; st = d; bar();
-  if (st.status === 'running' && (!o || o.status !== 'running')) eventOverlay('running');
+  if (o && st.status === 'running' && o.status !== 'running') eventOverlay('running');
   else if (st.status === 'paused' && (!o || o.status !== 'paused')) eventOverlay('paused');
   else if (st.status === 'waiting' || st.status === 'ended') eventOverlay('hide');
   if (o && o.status !== st.status) log(MSG[st.status], st.status === 'waiting' || st.status === 'ended' ? 'err' : 'ok');
