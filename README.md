@@ -1,4 +1,4 @@
-# HACKME
+# PassTrace
 
 A live cybersecurity-awareness event disguised as a hacking puzzle. Everything in the game is fictional.
 
@@ -24,7 +24,7 @@ Keep the real answer only in your private `.env` as `FINAL_CODE`. Never commit `
 - Captions, image descriptions and profile content: edit `data/puzzle.json`. It is served only through `GET /api/puzzle` after the event starts, and never contains the answer.
 
 ## Classes, scheduling and GST
-Players pick a class on arrival: grades 9 and 10 have sections A-H; grades 11 and 12 have sections A-G. In `/admin`, set the start time in GST (UTC+4) and press SCHEDULE: the waiting screen shows a countdown and the event opens automatically at that time. START still works for an immediate start, and RESET clears the schedule. Each class can be claimed by one player (RESET clears claims, and `/admin` can release a class). Admins can write and release live hints or announcements to all players. The `proximity` command shows a player's hottest and coldest guess, rated COLD/WARM/HOT, up to 5 times. The admin panel also shows reported ping, closest wrong guess by class, and a recent guess waterfall.
+Players pick a class on arrival: grade 9 has sections A-G, grade 10 has sections A-H, and grades 11 and 12 have sections A-G. In `/admin`, set the start time in GST (UTC+4) and press SCHEDULE: the waiting screen shows a countdown and the event opens automatically at that time. START still works for an immediate start, and RESET clears the schedule. Each class can be claimed by one player (RESET clears claims, and `/admin` can release a class). Admins can write and release live hints or announcements to all players. The `proximity` command shows a player's hottest and coldest guess, rated COLD/WARM/HOT, up to 5 times. The admin panel also shows reported ping, closest wrong guess by class, and a recent guess waterfall.
 
 ## Environment
 `AUTO_END_AFTER` (default `3`) ends the event automatically once that many players have solved it, then shows everyone the final leaderboard.
@@ -44,9 +44,9 @@ See `.env.example`. Set `COOKIE_SECURE=true` when served over HTTPS.
 ```
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
 sudo apt install -y nodejs nginx certbot python3-certbot-nginx
-git clone <repo> hackme && cd hackme
+git clone <repo> passtrace && cd passtrace
 npm install --omit=dev && cp .env.example .env && nano .env
-sudo npm i -g pm2 && pm2 start server.js --name hackme && pm2 save && pm2 startup
+sudo npm i -g pm2 && pm2 start server.js --name passtrace && pm2 save && pm2 startup
 ```
 Nginx (SSE needs buffering off):
 ```
@@ -67,6 +67,6 @@ Then: `sudo certbot --nginx -d example.com` and set `COOKIE_SECURE=true`.
 
 ## Deploy: Docker
 ```
-docker build -t hackme .
-docker run -d -p 3000:3000 --env-file .env -v hackme-data:/app/data hackme
+docker build -t passtrace .
+docker run -d -p 3000:3000 --env-file .env -v passtrace-data:/app/data passtrace
 ```

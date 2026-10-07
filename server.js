@@ -75,7 +75,9 @@ app.get('/api/puzzle', (req, res) => {
   try { res.json(JSON.parse(fs.readFileSync(PUZZLE_FILE, 'utf8'))); } catch { res.status(500).json({ error: 'PUZZLE UNAVAILABLE' }); }
 });
 
-const CLASS_RE = /^(?:(?:9|10)[A-H]|(?:11|12)[A-G])$/;
+const CLASS_RE = /^(?:9[A-G]|10[A-H]|1[12][A-G])$/;
+S.claims ||= {};
+for (const c of Object.keys(S.claims)) if (!CLASS_RE.test(c)) delete S.claims[c];
 const classOf = p => Object.keys(S.claims).find(k => S.claims[k] === p) || null;
 const guesses = new Map(), pxUsed = new Map(), telemetry = new Map(); // per player: guesses, proximity checks, network stats
 
@@ -228,4 +230,4 @@ app.use((req, res, next) => {
   res.status(404).end();
 });
 
-app.listen(PORT, () => console.log(`HACKME listening on :${PORT}`));
+app.listen(PORT, () => console.log(`PassTrace listening on :${PORT}`));

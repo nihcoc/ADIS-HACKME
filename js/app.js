@@ -247,7 +247,7 @@ function win(j) {
 function pickClass(taken) {
   return new Promise(res => {
     const o = $('#cls'); o.hidden = false;
-    const rows = [9, 10, 11, 12].map(g => `<div class="crow">${(g < 11 ? 'ABCDEFGH' : 'ABCDEFG').split('').map(l => `<button data-c="${g}${l}">${g}${l}</button>`).join('')}</div>`).join('');
+    const rows = [9, 10, 11, 12].map(g => `<div class="crow${g === 10 ? ' crow-eight' : ''}">${(g === 10 ? 'ABCDEFGH' : 'ABCDEFG').split('').map(l => `<button data-c="${g}${l}">${g}${l}</button>`).join('')}</div>`).join('');
     o.innerHTML = `<div class="box"><h2 class="glitch" data-t="SELECT YOUR CLASS">SELECT YOUR CLASS</h2><p class="dim">The event is class wise. Each class can be claimed once. Greyed-out classes are already taken.</p>${rows}<p id="cmsg" class="err"></p></div>`;
     const mark = t => o.querySelectorAll('button').forEach(b => { b.disabled = t.includes(b.dataset.c); });
     mark(taken);
@@ -267,7 +267,7 @@ async function ensureClass() {
 }
 (async () => {
   await ensureClass();
-  await type('HACKME // cybersecurity awareness exercise');
+  await type('PassTrace // cybersecurity awareness exercise');
   await type('All people, sites and photos are fictional and created for this exercise.', 'dim');
   await type(`Class ${cls} registered. Type "help".`);
   inp.focus();
