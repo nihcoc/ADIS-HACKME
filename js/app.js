@@ -40,6 +40,7 @@ function eventOverlay(mode) {
     el.hidden = false; return;
   }
   if (mode !== 'running') { el.hidden = true; el.className = 'event-overlay'; return; }
+  startRain();
   el.className = 'event-overlay'; el.hidden = false;
   let count = 3;
   const draw = () => { el.innerHTML = `<div class="event-overlay-card"><span class="event-kicker">SYSTEMS UNLOCKING</span><strong class="count-number">${count > 0 ? count : 'GO'}</strong><span class="event-label">EVENT LIVE</span></div>`; };
@@ -245,8 +246,9 @@ inp.addEventListener('keydown', async e => {
 const LESSON = `<h3>WHAT THIS ATTACK TEACHES</h3><p>Publicly available information can be combined to make passwords predictable. Pet names, birth and graduation years, schools, employers, locations, hobbies, family names, relationships and social-media posts each look harmless alone, but together they produce useful guesses. A pattern like <i>pet name + meaningful year + common symbol</i> is easy to predict. This exercise shows why to avoid such patterns. Never try this against real people or accounts.</p>
     <h3>TOP 5 SECURITY TIPS</h3><ol><li>Don't use personal information in passwords.</li><li>Avoid combining pet names, dates, school information, or other public details.</li><li>Assume information posted publicly can be collected and correlated.</li><li>Use long, unique, randomly generated passwords.</li><li>Use MFA or passkeys whenever available.</li></ol><h3>PRECAUTIONS</h3><ul><li>Review what your public profiles reveal: pet names, school and graduation years, employers, locations and hobbies.</li><li>Tighten privacy settings and delete old posts that give away personal details.</li><li>Never reuse a password. Keep unique ones in a password manager.</li><li>Avoid security questions whose answers can be found online.</li><li>Turn on MFA or passkeys for email, banking and social accounts.</li><li>Never try this against real people or accounts.</li></ul>`;
 function startRain() {
+  const cv = $('#rain'); cv.hidden = false;
   if (rainT) return;
-  const cv = $('#rain'); cv.hidden = false; cv.width = innerWidth; cv.height = innerHeight;
+  cv.width = innerWidth; cv.height = innerHeight;
   const x = cv.getContext('2d'), cols = Array(Math.ceil(cv.width / 16)).fill(0);
   rainT = setInterval(() => { x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(0, 0, cv.width, cv.height); x.font = '16px monospace';
     cols.forEach((y, i) => { x.fillStyle = i % 2 ? '#27a9ff' : '#00ff66'; x.fillText(String.fromCharCode(0x30A0 + Math.random() * 96), i * 16, y * 16); cols[i] = y * 16 > cv.height && Math.random() > .975 ? 0 : y + 1; }); }, 50);
@@ -263,6 +265,7 @@ function showFinal() {
   <table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>TIME TAKEN</th><th>SOLVED AT (GST)</th></tr>${rows}</table>${proximityBoard()}${LESSON}</div>`;
 }
 function showWinner(j) {
+  startRain();
   const w = $('#win'); w.hidden = false;
   w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>You solved the challenge.</p><p>Rank: <b>#${j.rank}</b> &nbsp; Time: <b>${fmt(j.ms)}</b></p><p class="dim">The event continues until players from ${st.limit || 3} different classes solve it.</p><button id="dismissWin" type="button">RETURN TO TERMINAL</button></div>`;
   $('#dismissWin').addEventListener('click', () => { w.hidden = true; });
