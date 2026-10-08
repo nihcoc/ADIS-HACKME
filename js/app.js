@@ -66,7 +66,7 @@ function bar() {
 setInterval(bar, 250);
 function proximityBoard() {
   const rows = st && st.proximityBoard || [];
-  return rows.length ? `<div class="proximity-board"><h3>TOP 6 PROXIMITY</h3><table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>PROXIMITY</th></tr>${rows.map(x => `<tr><td>#${x.rank}</td><td>${esc(x.cls)}</td><td>${x.score}%</td></tr>`).join('')}</table></div>` : '<div class="proximity-board"><h3>TOP 6 PROXIMITY</h3><p class="dim">No scored guesses yet.</p></div>';
+  return rows.length ? `<div class="proximity-board"><h3>CLASS PROGRESS</h3><table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>PROXIMITY</th><th>STATUS</th></tr>${rows.map(x => `<tr><td>#${x.rank}</td><td>${esc(x.cls)}</td><td>${x.score}%</td><td>${x.solved ? `SOLVED · ${fmt(x.ms)}` : (x.tier || 'IN PLAY')}</td></tr>`).join('')}</table></div>` : '<div class="proximity-board"><h3>CLASS PROGRESS</h3><p class="dim">No scored guesses yet.</p></div>';
 }
 function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board && st.board.length ? '<b>LEADERBOARD</b><br>' + st.board.map(x => `#${x.rank} ${esc(x.cls || '')} ${fmt(x.ms)}`).join('<br>') : ''; const p = $('#proximityBoard'); if (p) p.innerHTML = proximityBoard(); }
 const MSG = { running: '>> EVENT STARTED. Systems unlocked.', paused: '>> EVENT PAUSED.', ended: '>> EVENT ENDED.', waiting: '>> EVENT RESET. Awaiting start.' };
@@ -260,9 +260,8 @@ function showFinal() {
   if (finalShown) return;
   finalShown = true; startRain();
   const w = $('#win'); w.hidden = false;
-  const rows = (st.board || []).map(x => `<tr><td>#${x.rank}</td><td>${esc(x.cls || '')}</td><td>${fmt(x.ms)}</td><td>${gstTime(x.at)}</td></tr>`).join('') || '<tr><td colspan="4">No solvers</td></tr>';
-  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final solvers leaderboard:</p>
-  <table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>TIME TAKEN</th><th>SOLVED AT (GST)</th></tr>${rows}</table>${proximityBoard()}${LESSON}</div>`;
+  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final class progress:</p>
+  ${proximityBoard()}${LESSON}</div>`;
 }
 function showWinner(j) {
   startRain();

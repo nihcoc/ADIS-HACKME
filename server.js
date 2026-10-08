@@ -22,13 +22,15 @@ const pc = new Map(), ac = new Set();
 function rankedGuesses() {
   const best = new Map();
   for (const g of S.guessWaterfall || []) if (!best.has(g.cls) || g.score > best.get(g.cls).score) best.set(g.cls, g);
-  return [...best.values()].sort((a, b) => b.score - a.score || a.ms - b.ms);
+  for (const solver of S.solvers) best.set(solver.cls, { ...best.get(solver.cls), cls: solver.cls, guess: 'SOLVED', score: 100, tier: 'SOLVED', solved: true, ms: solver.ms, at: solver.at });
+  return [...best.values()].sort((a, b) => b.score - a.score || Number(b.solved) - Number(a.solved) || a.ms - b.ms);
 }
 function snap(admin, pid) {
   const el = elapsed(), hs = released(pid, admin), ranked = rankedGuesses();
+  const solvedRows = ranked.filter(x => x.solved), guessRows = ranked.filter(x => !x.solved).slice(0, Math.max(0, 6 - solvedRows.length));
   const s = { status: S.status, elapsedMs: el, hints: hs,
     players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, firstCls: S.solvers.length ? S.solvers[0].cls : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })) : null,
-    proximityBoard: ranked.slice(0, 6).map((x, i) => ({ rank: i + 1, cls: x.cls, score: x.score })) };
+    proximityBoard: [...solvedRows, ...guessRows].map((x, i) => ({ rank: i + 1, cls: x.cls, score: x.score, tier: x.tier, solved: !!x.solved, ms: x.solved ? x.ms : null })) };
   if (admin) {
     const recent = [...(S.guessWaterfall || [])].slice(-10).reverse();
     const overallBest = ranked[0] || null;
