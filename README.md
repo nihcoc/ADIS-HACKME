@@ -27,7 +27,7 @@ Keep the real answer only in your private `.env` as `FINAL_CODE`. Never commit `
 Players pick a class on arrival: grade 9 has sections A-G, grade 10 has sections A-H, and grades 11 and 12 have sections A-G. In `/admin`, set the start time in GST (UTC+4) and press SCHEDULE: the waiting screen shows a countdown and the event opens automatically at that time. START still works for an immediate start, and RESET clears the schedule. Each class can be claimed by one player (RESET clears claims, and `/admin` can release a class). Admins can write and release live hints or announcements to all players. The `proximity` command shows a player's hottest and coldest guess, rated COLD/WARM/HOT, up to 5 times. The admin panel also shows reported ping, closest wrong guess by class, and a recent guess waterfall.
 
 ## Environment
-`AUTO_END_AFTER` (default `3`) ends the event automatically once that many players have solved it, then shows everyone the final leaderboard.
+`AUTO_END_AFTER` (default `3`) ends the event automatically once players from that many different classes have solved it, then shows everyone the final leaderboard. Admins can also end the event at any time with the END button; both paths broadcast the final screen to all connected players.
 See `.env.example`. Set `COOKIE_SECURE=true` when served over HTTPS.
 
 ## Deploy: Render

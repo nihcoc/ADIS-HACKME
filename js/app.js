@@ -164,7 +164,7 @@ function waiting() {
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
     <li>Proximity: type <b>proximity</b> to see your hottest and coldest guess so far, rated COLD, WARM or HOT. You get 5 proximity checks.</li>
-    <li>The event ends automatically once the first ${st.limit || 3} players solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
+    <li>The event ends automatically once players from ${st.limit || 3} different classes solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
     <li>Admins can release hints or messages live. Type <b>hints</b> to read released messages.</li>
     <li>The first correct submission is announced live to all players.</li>
     <li>Play fair: do not share answers, and do not attack the server or any real person or account.</li>
@@ -263,7 +263,7 @@ function showFinal() {
 }
 function showWinner(j) {
   const w = $('#win'); w.hidden = false;
-  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>You solved the challenge.</p><p>Rank: <b>#${j.rank}</b> &nbsp; Time: <b>${fmt(j.ms)}</b></p><p class="dim">The event continues until ${st.limit || 3} players solve it.</p><button id="dismissWin" type="button">RETURN TO TERMINAL</button></div>`;
+  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>You solved the challenge.</p><p>Rank: <b>#${j.rank}</b> &nbsp; Time: <b>${fmt(j.ms)}</b></p><p class="dim">The event continues until players from ${st.limit || 3} different classes solve it.</p><button id="dismissWin" type="button">RETURN TO TERMINAL</button></div>`;
   $('#dismissWin').addEventListener('click', () => { w.hidden = true; });
 }
 function win(j) {

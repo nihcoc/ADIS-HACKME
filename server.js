@@ -130,7 +130,8 @@ app.post('/api/submit', subLimit, (req, res) => {
   if (S.solvers.some(x => x.pid === req.pid)) return res.status(409).json({ error: 'ALREADY SOLVED' });
   if (eq(code.trim(), FINAL_CODE)) {
     const ms = elapsed(); S.solvers.push({ cls, ms, at: new Date().toISOString(), pid: req.pid });
-    if (S.solvers.length >= LIMIT && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
+    const solvedClasses = new Set(S.solvers.map(x => x.cls)).size;
+    if (solvedClasses >= LIMIT && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
     save(); broadcast();
     return res.json({ ok: true, ms, rank: S.solvers.length });
   }
