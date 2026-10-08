@@ -261,10 +261,15 @@ function showFinal() {
   w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final solvers leaderboard:</p>
   <table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>TIME TAKEN</th><th>SOLVED AT (GST)</th></tr>${rows}</table>${proximityBoard()}${LESSON}</div>`;
 }
+function showWinner(j) {
+  const w = $('#win'); w.hidden = false;
+  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>You solved the challenge.</p><p>Rank: <b>#${j.rank}</b> &nbsp; Time: <b>${fmt(j.ms)}</b></p><p class="dim">The event continues until ${st.limit || 3} players solve it.</p><button id="dismissWin" type="button">RETURN TO TERMINAL</button></div>`;
+  $('#dismissWin').addEventListener('click', () => { w.hidden = true; });
+}
 function win(j) {
   solved = true;
   log(`ACCESS GRANTED — rank #${j.rank}, finishing time ${fmt(j.ms)}.`, 'ok');
-  if (st && st.status === 'ended') showFinal();
+  if (st && st.status === 'ended') showFinal(); else showWinner(j);
 }
 
 // ---- class selection + intro ----
