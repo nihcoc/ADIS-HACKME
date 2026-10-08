@@ -86,24 +86,24 @@
       },
       {
         "image": "/assets/grammie/photo4.jpg",
-        "caption": "My BMW M2 1990",
+        "caption": "Leaning on my BMW M2 1990",
         "date": "2025-08-30",
         "location": "Hudson River Greenway",
-        "description": "Kuriakose with his BMW M2 1990.",
+        "description": "Kuriakose leaning on his BMW M2 1990.",
         "comments": [
           {
             "user": "dan.reyes",
-            "text": "That BMW M2 1990 looks incredible!",
+            "text": "You leaning on the BMW M2 1990 is such a great shot!",
             "date": "2025-08-30"
           },
           {
             "user": "tessa.w",
-            "text": "Your BMW M2 1990 is such a classic.",
+            "text": "The BMW M2 1990 looks perfect beside you.",
             "date": "2025-08-31"
           },
           {
             "user": "kuria.boss",
-            "text": "Thanks! The BMW M2 1990 is my favourite ride.",
+            "text": "Thanks! I had to get a photo leaning on my favourite ride.",
             "date": "2025-08-31"
           }
         ]
@@ -139,24 +139,24 @@
       },
       {
         "image": "/assets/grammie/photo4.jpg",
-        "caption": "BMW M2 1990, another look",
+        "caption": "BMW M2 1990 in the NYC rain",
         "date": "2025-09-02",
-        "location": "Abu Dhabi, UAE",
-        "description": "Kuriakose sharing another photo of his BMW M2 1990.",
+        "location": "New York City, New York",
+        "description": "Kuriakose's BMW M2 1990 in New York City rain.",
         "comments": [
           {
             "user": "zain.drive",
-            "text": "The BMW M2 1990 looks amazing in this shot.",
+            "text": "The rain makes your BMW M2 1990 look even better.",
             "date": "2025-09-02"
           },
           {
             "user": "nisha.cars",
-            "text": "Still cannot get over your BMW M2 1990.",
+            "text": "That NYC rain shot is cinematic.",
             "date": "2025-09-03"
           },
           {
             "user": "kuria.boss",
-            "text": "Thank you! It always makes every drive special.",
+            "text": "Thanks! NYC rain gave it the perfect look.",
             "date": "2025-09-03"
           }
         ]
@@ -175,17 +175,17 @@
       {
         "org": "Aviv Enterprises",
         "title": "Accountant",
-        "period": "2015 - 2023"
+        "period": "2018 - 2023"
       }
     ],
     "education": [
       {
         "org": "London School of Economics",
-        "period": "2010 - 2014"
+        "period": "2014 - 2018"
       },
       {
         "org": "Abu Dhabi Indian School",
-        "period": "Graduated 2009"
+        "period": "Graduated 2014"
       }
     ]
   },
