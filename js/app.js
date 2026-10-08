@@ -78,7 +78,7 @@ function onState(d) {
   if (o) st.hints.filter(h => !o.hints.some(x => h.id ? x.id === h.id : x.n === h.n)).forEach(h => { log(`[MESSAGE ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
   if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)} by ${st.firstCls || 'a class'}. The race is on.`, 'ok');
   if (st.status === 'ended' && (!o || o.status !== 'ended')) showFinal();
-  if (st.status === 'waiting') { puz = null; solved = false; finalShown = false; $('#win').hidden = true; stopRain(); waiting(); if (o && o.status !== 'waiting') ensureClass(); }
+  if (st.status === 'waiting') { puz = null; solved = false; finalShown = false; $('#win').hidden = true; waiting(); if (o && o.status !== 'waiting') ensureClass(); }
   else if (!puz) load();
 }
 // Live updates over SSE, with a polling fallback for networks/tunnels that buffer or block event streams.
@@ -249,10 +249,11 @@ function startRain() {
   const cv = $('#rain'); cv.hidden = false; cv.width = innerWidth; cv.height = innerHeight;
   const x = cv.getContext('2d'), cols = Array(Math.ceil(cv.width / 16)).fill(0);
   rainT = setInterval(() => { x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(0, 0, cv.width, cv.height); x.font = '16px monospace';
-    cols.forEach((y, i) => { x.fillStyle = Math.random() < .23 ? '#27a9ff' : '#00ff66'; x.fillText(String.fromCharCode(0x30A0 + Math.random() * 96), i * 16, y * 16); cols[i] = y * 16 > cv.height && Math.random() > .975 ? 0 : y + 1; }); }, 50);
+    cols.forEach((y, i) => { x.fillStyle = i % 2 ? '#27a9ff' : '#00ff66'; x.fillText(String.fromCharCode(0x30A0 + Math.random() * 96), i * 16, y * 16); cols[i] = y * 16 > cv.height && Math.random() > .975 ? 0 : y + 1; }); }, 50);
 }
 function stopRain() { if (rainT) clearInterval(rainT); rainT = null; $('#rain').hidden = true; }
 addEventListener('resize', () => { if (rainT) { const cv = $('#rain'); cv.width = innerWidth; cv.height = innerHeight; } });
+startRain();
 function showFinal() {
   if (finalShown) return;
   finalShown = true; startRain();
