@@ -1,12 +1,12 @@
 {
   "person": {
-    "name": "Paulose Kuttichan Paaraparambil",
-    "age": 33,
-    "born": 1992,
+    "name": "Kuriakose Mateveetil",
+    "age": 29,
+    "born": 1996,
     "location": "New York City"
   },
   "grammie": {
-    "username": "paulose.kp",
+    "username": "kuria.boss",
     "avatar": "/assets/profile/avatar.jpg",
     "bio": "i love CV and KP💖💖🐕🐕\nDosa lover @idk.dosa😋🍴",
     "followers": 200,
@@ -17,7 +17,7 @@
         "caption": "Sunday reset 🚲",
         "date": "2025-03-16",
         "location": "Central Park, New York",
-        "description": "Paulose cycling with CV near the park.",
+        "description": "Kuriakose cycling with CV near the park.",
         "comments": [
           {
             "user": "riya_s",
@@ -41,7 +41,7 @@
         "caption": "Chai and chapters ☕📖",
         "date": "2025-01-09",
         "location": "Brooklyn, New York",
-        "description": "Paulose reading a paperback at a café table.",
+        "description": "Kuriakose reading a paperback at a café table.",
         "comments": [
           {
             "user": "meera.nair",
@@ -62,14 +62,14 @@
       },
       {
         "image": "/assets/grammie/photo3.jpg",
-        "caption": "33 looks good on us. Born in '92, still going.",
+        "caption": "29 looks good on us. Born in '96, still going.",
         "date": "2025-06-21",
         "location": "Queens, New York",
-        "description": "Paulose and CV on the apartment balcony.",
+        "description": "Kuriakose and CV on the apartment balcony.",
         "comments": [
           {
             "user": "priya.menon",
-            "text": "Happy birthday Paulose! 🎉",
+            "text": "Happy birthday Kuriakose! 🎉",
             "date": "2025-06-21"
           },
           {
@@ -86,24 +86,24 @@
       },
       {
         "image": "/assets/grammie/photo4.jpg",
-        "caption": "River miles",
+        "caption": "My BMW M2 1990",
         "date": "2025-08-30",
         "location": "Hudson River Greenway",
-        "description": "Paulose beside his bicycle at the river.",
+        "description": "Kuriakose with his BMW M2 1990.",
         "comments": [
           {
             "user": "dan.reyes",
-            "text": "Greenway views 😍",
+            "text": "That BMW M2 1990 looks incredible!",
             "date": "2025-08-30"
           },
           {
             "user": "tessa.w",
-            "text": "How many miles today?",
+            "text": "Your BMW M2 1990 is such a classic.",
             "date": "2025-08-31"
           },
           {
-            "user": "paulose.kp",
-            "text": "About 25. Legs are done 😅",
+            "user": "kuria.boss",
+            "text": "Thanks! The BMW M2 1990 is my favourite ride.",
             "date": "2025-08-31"
           }
         ]
@@ -113,11 +113,11 @@
         "caption": "A special family birthday 🎂❤️",
         "date": "2026-04-12",
         "location": "Thrissur, Kerala",
-        "description": "Paulose celebrating a family birthday with a cake.",
+        "description": "Kuriakose celebrating a family birthday with a cake.",
         "comments": [
           {
             "user": "anita.menon",
-            "text": "Happy birthday Shirley aunty! 🎉 Wishing you many more years of health and happiness.",
+            "text": "Happy birthday Mary aunty! 🎉 Wishing you many more years of health and happiness.",
             "date": "2026-04-12"
           },
           {
@@ -131,9 +131,33 @@
             "date": "2026-04-13"
           },
           {
-            "user": "paulose.kp",
+            "user": "kuria.boss",
             "text": "Thank you all! Mom says thanks too 🙏",
             "date": "2026-04-13"
+          }
+        ]
+      },
+      {
+        "image": "/assets/grammie/photo4.jpg",
+        "caption": "BMW M2 1990, another look",
+        "date": "2025-09-02",
+        "location": "Abu Dhabi, UAE",
+        "description": "Kuriakose sharing another photo of his BMW M2 1990.",
+        "comments": [
+          {
+            "user": "zain.drive",
+            "text": "The BMW M2 1990 looks amazing in this shot.",
+            "date": "2025-09-02"
+          },
+          {
+            "user": "nisha.cars",
+            "text": "Still cannot get over your BMW M2 1990.",
+            "date": "2025-09-03"
+          },
+          {
+            "user": "kuria.boss",
+            "text": "Thank you! It always makes every drive special.",
+            "date": "2025-09-03"
           }
         ]
       }
@@ -160,14 +184,14 @@
         "period": "2010 - 2014"
       },
       {
-        "org": "Mattical High School",
+        "org": "Abu Dhabi Indian School",
         "period": "Graduated 2009"
       }
     ]
   },
   "hooked": {
-    "name": "Paulose",
-    "age": 33,
+    "name": "Kuriakose",
+    "age": 29,
     "location": "New York City",
     "lookingFor": "Women aged 30-35",
     "hobbies": [

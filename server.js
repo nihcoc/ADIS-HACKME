@@ -14,36 +14,44 @@ try { Object.assign(S, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch
 if (!Array.isArray(S.hints)) S.hints = [];
 const save = () => { try { fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true }); fs.writeFileSync(STATE_FILE, JSON.stringify(S)); } catch (e) { console.error('persist failed', e.message); } };
 const elapsed = () => S.accum + (S.status === 'running' ? Date.now() - S.since : 0);
-const released = () => S.hints.map((h, i) => ({ id: h.id || String(i + 1), n: i + 1, text: h.text }));
+const released = (pid, admin) => S.hints
+  .map((h, i) => ({ id: h.id || String(i + 1), n: i + 1, text: h.text, target: h.target || 'all' }))
+  .filter(h => admin || h.target === 'all' || h.target === classOf(pid));
 
-const pc = new Set(), ac = new Set();
-function snap(admin) {
-  const el = elapsed(), hs = released();
+const pc = new Map(), ac = new Set();
+function rankedGuesses() {
+  const best = new Map();
+  for (const g of S.guessWaterfall || []) if (!best.has(g.cls) || g.score > best.get(g.cls).score) best.set(g.cls, g);
+  return [...best.values()].sort((a, b) => b.score - a.score || a.ms - b.ms);
+}
+function snap(admin, pid) {
+  const el = elapsed(), hs = released(pid, admin), ranked = rankedGuesses();
   const s = { status: S.status, elapsedMs: el, hints: hs,
-    players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, firstCls: S.solvers.length ? S.solvers[0].cls : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })) : null };
+    players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, firstCls: S.solvers.length ? S.solvers[0].cls : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })) : null,
+    proximityBoard: ranked.slice(0, 6).map((x, i) => ({ rank: i + 1, cls: x.cls, score: x.score })) };
   if (admin) {
     const recent = [...(S.guessWaterfall || [])].slice(-10).reverse();
-    const best = new Map();
-    for (const g of S.guessWaterfall || []) if (!best.has(g.cls) || g.score > best.get(g.cls).score) best.set(g.cls, g);
-    const overallBest = [...best.values()].sort((a, b) => b.score - a.score)[0] || null;
+    const overallBest = ranked[0] || null;
     const pings = [...telemetry.values()].filter(x => Date.now() - x.seen < 30000);
     const pingVals = pings.map(x => x.ping).filter(Number.isFinite);
     Object.assign(s, { solvers: S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })), claimed: Object.keys(S.claims).sort(), boardEnabled: S.board, hintsReleased: hs.length,
-      hints: hs, closestGuess: overallBest, bestGuesses: [...best.values()].sort((a, b) => b.score - a.score), waterfall: recent,
+      hints: hs, closestGuess: overallBest, bestGuesses: ranked.slice(0, 10), waterfall: recent,
       network: { online: pings.length, avgPing: pingVals.length ? Math.round(pingVals.reduce((a, b) => a + b, 0) / pingVals.length) : null, maxPing: pingVals.length ? Math.max(...pingVals) : null } });
   }
   return s;
 }
 const send = (r, d) => r.write(`event: state\ndata: ${JSON.stringify(d)}\n\n`);
-const broadcast = () => { const p = snap(false), a = snap(true); pc.forEach(r => send(r, p)); ac.forEach(r => send(r, a)); };
+const broadcast = () => { pc.forEach((pid, r) => send(r, snap(false, pid))); const a = snap(true); ac.forEach(r => send(r, a)); };
 setInterval(() => {
   if (S.status === 'waiting' && S.startAt && Date.now() >= S.startAt) { Object.assign(S, { status: 'running', accum: 0, since: Date.now(), startAt: null }); save(); } // scheduled start
   broadcast();
 }, 1000);
 function sse(req, res, set) {
   res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
-  res.flushHeaders(); set.add(res); req.on('close', () => { set.delete(res); broadcast(); });
-  send(res, snap(set === ac)); if (set === pc) broadcast();
+  res.flushHeaders();
+  if (set === pc) set.set(res, req.pid); else set.add(res);
+  req.on('close', () => { set.delete(res); broadcast(); });
+  send(res, snap(set === ac, req.pid)); if (set === pc) broadcast();
 }
 
 const eq = (a, b) => { const h = x => crypto.createHash('sha256').update(String(x)).digest(); return crypto.timingSafeEqual(h(a), h(b)); };
@@ -68,7 +76,7 @@ app.use('/api', (req, res, next) => {
   req.pid = p; next();
 });
 
-app.get('/api/event', (req, res) => res.json({ ...snap(false), solved: S.solvers.some(x => x.pid === req.pid) }));
+app.get('/api/event', (req, res) => res.json({ ...snap(false, req.pid), solved: S.solvers.some(x => x.pid === req.pid) }));
 app.get('/api/stream', (req, res) => sse(req, res, pc));
 app.get('/api/puzzle', (req, res) => {
   if (S.status === 'waiting') return res.status(403).json({ error: 'EVENT NOT STARTED' });
@@ -160,7 +168,7 @@ app.post('/api/proximity', subLimit, (req, res) => {
   if (!gs.length) return res.status(400).json({ error: 'SUBMIT A GUESS FIRST' });
   if (n >= 5) return res.status(403).json({ error: 'NO PROXIMITY CHECKS LEFT' });
   pxUsed.set(req.pid, n + 1);
-  const hot = gs.reduce((a, b) => b.s > a.s ? b : a), cold = gs.reduce((a, b) => b.s < a.s ? b : a), o = x => ({ guess: x.g, tier: tier(x.s) });
+  const hot = gs.reduce((a, b) => b.s > a.s ? b : a), cold = gs.reduce((a, b) => b.s < a.s ? b : a), o = x => ({ guess: x.g, tier: tier(x.s), score: x.s });
   res.json({ hot: o(hot), cold: o(cold), checksLeft: 4 - n });
 });
 
@@ -210,9 +218,12 @@ app.post('/api/admin/release', need, (req, res) => {
 
 app.post('/api/admin/message', need, (req, res) => {
   const text = typeof (req.body && req.body.text) === 'string' ? req.body.text.trim() : '';
+  const targetRaw = typeof (req.body && req.body.target) === 'string' ? req.body.target.trim().toUpperCase() : 'ALL';
+  const target = !targetRaw || targetRaw === 'ALL' ? 'all' : targetRaw;
   if (!text || text.length > 500) return res.status(400).json({ error: 'MESSAGE MUST BE 1–500 CHARACTERS' });
+  if (target !== 'all' && !CLASS_RE.test(target)) return res.status(400).json({ error: 'ENTER ALL OR A VALID CLASS' });
   if (S.hints.length >= 100) return res.status(400).json({ error: 'MESSAGE LIMIT REACHED; RESET THE EVENT TO CLEAR MESSAGES' });
-  S.hints.push({ id: crypto.randomBytes(8).toString('hex'), text, at: new Date().toISOString() });
+  S.hints.push({ id: crypto.randomBytes(8).toString('hex'), text, target, at: new Date().toISOString() });
   save(); broadcast(); res.json({ ok: true, n: S.hints.length });
 });
 

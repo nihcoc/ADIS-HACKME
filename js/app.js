@@ -5,7 +5,7 @@ const GST = { timeZone: 'Asia/Dubai' }; // Gulf Standard Time, UTC+4
 const gstTime = t => new Date(t).toLocaleTimeString('en-GB', { ...GST, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + ' GST';
 const gstDay = t => new Date(t).toLocaleString('en-GB', { ...GST, weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) + ' GST';
 const LABEL = { waiting: 'EVENT NOT STARTED', running: 'EVENT LIVE', paused: 'EVENT PAUSED', ended: 'EVENT ENDED' };
-let st = null, puz = null, solved = false, cls = '', rainT, winning = false;
+let st = null, puz = null, solved = false, cls = '', rainT, finalShown = false;
 
 document.addEventListener('click', e => {
   const b = e.target.closest('button');
@@ -63,7 +63,11 @@ function bar() {
   boardUI(); const f = $('#fb'); if (f) f.textContent = st && st.first != null ? `FIRST SUBMISSION RECEIVED at ${fmt(st.first)} by ${st.firstCls || 'a class'}` : '';
 }
 setInterval(bar, 250);
-function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board && st.board.length ? '<b>LEADERBOARD</b><br>' + st.board.map(x => `#${x.rank} ${esc(x.cls || '')} ${fmt(x.ms)}`).join('<br>') : ''; }
+function proximityBoard() {
+  const rows = st && st.proximityBoard || [];
+  return rows.length ? `<div class="proximity-board"><h3>TOP 6 PROXIMITY</h3><table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>PROXIMITY</th></tr>${rows.map(x => `<tr><td>#${x.rank}</td><td>${esc(x.cls)}</td><td>${x.score}%</td></tr>`).join('')}</table></div>` : '<div class="proximity-board"><h3>TOP 6 PROXIMITY</h3><p class="dim">No scored guesses yet.</p></div>';
+}
+function boardUI() { const b = $('#board'); if (b) b.innerHTML = st && st.board && st.board.length ? '<b>LEADERBOARD</b><br>' + st.board.map(x => `#${x.rank} ${esc(x.cls || '')} ${fmt(x.ms)}`).join('<br>') : ''; const p = $('#proximityBoard'); if (p) p.innerHTML = proximityBoard(); }
 const MSG = { running: '>> EVENT STARTED. Systems unlocked.', paused: '>> EVENT PAUSED.', ended: '>> EVENT ENDED.', waiting: '>> EVENT RESET. Awaiting start.' };
 function onState(d) {
   d.rx = Date.now(); const o = st; st = d; bar();
@@ -74,7 +78,7 @@ function onState(d) {
   if (o) st.hints.filter(h => !o.hints.some(x => h.id ? x.id === h.id : x.n === h.n)).forEach(h => { log(`[MESSAGE ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
   if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)} by ${st.firstCls || 'a class'}. The race is on.`, 'ok');
   if (st.status === 'ended' && (!o || o.status !== 'ended')) showFinal();
-  if (st.status === 'waiting') { puz = null; solved = false; $('#win').hidden = true; waiting(); if (o && o.status !== 'waiting') ensureClass(); }
+  if (st.status === 'waiting') { puz = null; solved = false; finalShown = false; $('#win').hidden = true; stopRain(); waiting(); if (o && o.status !== 'waiting') ensureClass(); }
   else if (!puz) load();
 }
 // Live updates over SSE, with a polling fallback for networks/tunnels that buffer or block event streams.
@@ -174,14 +178,14 @@ ACCESS DENIED   -> try again, or type proximity to check how close you are</pre>
 function desk() {
   const d = $('#desk'); d.hidden = false;
   d.dataset.m = 'g'; d.innerHTML = `<span class="tag">FICTIONAL CYBERSECURITY TRAINING PROFILE</span><h2>${esc(puz.person.name)}</h2>
-  <div id="fb"></div><nav id="apps">${appTiles(false)}</nav><div id="clues"><b>CLUES</b><ul><li>The password is related to his personal life.</li></ul></div>
+  <div id="proximityBoard">${proximityBoard()}</div><div id="fb"></div><nav id="apps">${appTiles(false)}</nav><div id="clues"><b>CLUES</b><ul><li>The password is related to his personal life.</li></ul></div>
   <div class="browser-frame"><div class="browser-chrome"><div class="browser-dots"><i></i><i></i><i></i></div><div class="browser-address"><span>⌑</span><span id="browserAddress">Choose an application</span></div><span class="browser-menu">•••</span></div><div id="site"><p>Select an application.</p></div></div><div id="board"></div>`;
   d.querySelectorAll('#apps button').forEach(b => b.addEventListener('click', () => site(b.dataset.s)));
   boardUI();
 }
 
 // ---- commands ----
-const COMMANDS = ['legend: how this exercise works', 'hints: show released messages', 'status: event, timer and message status', 'submit <code>: submit your answer', 'proximity: hottest and coldest of your guesses (5 checks)', 'clear: clear the screen'];
+const COMMANDS = ['legend: how this exercise works', 'hints: show released messages', 'status: event, timer and message status', 'submit <code>: submit your answer', 'proximity: hottest and coldest guesses with percentages (5 checks)', 'clear: clear the screen'];
 const commandList = $('#commandList');
 if (commandList) COMMANDS.forEach(command => {
   const item = document.createElement('div');
@@ -198,7 +202,7 @@ const C = {
 async function proximity() {
   const r = await fetch('/api/proximity', { method: 'POST' }), j = await r.json().catch(() => ({}));
   if (!r.ok) return log(j.error || 'ERROR', 'err');
-  const line = (l, x) => log(`${l}: ${x.guess}   [${x.tier}]`, x.tier === 'COLD' ? 'dim' : 'hint');
+  const line = (l, x) => log(`${l}: ${x.guess}   [${x.tier} ${x.score}%]`, x.tier === 'COLD' ? 'dim' : 'hint');
   line('HOTTEST guess', j.hot);
   if (j.cold.guess !== j.hot.guess) line('COLDEST guess', j.cold); else log('(only one guess so far, so it is both your hottest and coldest)', 'dim');
   log(`${j.checksLeft} of 5 proximity checks left`, 'dim');
@@ -230,25 +234,27 @@ inp.addEventListener('keydown', async e => {
 // ---- victory ----
 const LESSON = `<h3>WHAT THIS ATTACK TEACHES</h3><p>Publicly available information can be combined to make passwords predictable. Pet names, birth and graduation years, schools, employers, locations, hobbies, family names, relationships and social-media posts each look harmless alone, but together they produce useful guesses. A pattern like <i>pet name + meaningful year + common symbol</i> is easy to predict. This exercise shows why to avoid such patterns. Never try this against real people or accounts.</p>
     <h3>TOP 5 SECURITY TIPS</h3><ol><li>Don't use personal information in passwords.</li><li>Avoid combining pet names, dates, school information, or other public details.</li><li>Assume information posted publicly can be collected and correlated.</li><li>Use long, unique, randomly generated passwords.</li><li>Use MFA or passkeys whenever available.</li></ol><h3>PRECAUTIONS</h3><ul><li>Review what your public profiles reveal: pet names, school and graduation years, employers, locations and hobbies.</li><li>Tighten privacy settings and delete old posts that give away personal details.</li><li>Never reuse a password. Keep unique ones in a password manager.</li><li>Avoid security questions whose answers can be found online.</li><li>Turn on MFA or passkeys for email, banking and social accounts.</li><li>Never try this against real people or accounts.</li></ul>`;
+function startRain() {
+  if (rainT) return;
+  const cv = $('#rain'); cv.hidden = false; cv.width = innerWidth; cv.height = innerHeight;
+  const x = cv.getContext('2d'), cols = Array(Math.ceil(cv.width / 16)).fill(0);
+  rainT = setInterval(() => { x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(0, 0, cv.width, cv.height); x.font = '16px monospace';
+    cols.forEach((y, i) => { x.fillStyle = Math.random() < .23 ? '#27a9ff' : '#00ff66'; x.fillText(String.fromCharCode(0x30A0 + Math.random() * 96), i * 16, y * 16); cols[i] = y * 16 > cv.height && Math.random() > .975 ? 0 : y + 1; }); }, 50);
+}
+function stopRain() { if (rainT) clearInterval(rainT); rainT = null; $('#rain').hidden = true; }
+addEventListener('resize', () => { if (rainT) { const cv = $('#rain'); cv.width = innerWidth; cv.height = innerHeight; } });
 function showFinal() {
-  if (winning) return;
+  if (finalShown) return;
+  finalShown = true; startRain();
   const w = $('#win'); w.hidden = false;
   const rows = (st.board || []).map(x => `<tr><td>#${x.rank}</td><td>${esc(x.cls || '')}</td><td>${fmt(x.ms)}</td><td>${gstTime(x.at)}</td></tr>`).join('') || '<tr><td colspan="4">No solvers</td></tr>';
-  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final leaderboard:</p>
-  <table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>TIME TAKEN</th><th>SOLVED AT (GST)</th></tr>${rows}</table>${LESSON}<button id="cl">CLOSE</button></div>`;
-  $('#cl').addEventListener('click', () => { w.hidden = true; });
+  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final solvers leaderboard:</p>
+  <table class="lbt"><tr><th>RANK</th><th>CLASS</th><th>TIME TAKEN</th><th>SOLVED AT (GST)</th></tr>${rows}</table>${proximityBoard()}${LESSON}</div>`;
 }
 function win(j) {
-  solved = true; winning = true; const cv = $('#rain'); cv.hidden = false; cv.width = innerWidth; cv.height = innerHeight;
-  const x = cv.getContext('2d'), cols = Array(Math.ceil(cv.width / 16)).fill(0);
-  rainT = setInterval(() => { x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(0, 0, cv.width, cv.height); x.fillStyle = '#00ff66'; x.font = '16px monospace';
-    cols.forEach((y, i) => { x.fillText(String.fromCharCode(0x30A0 + Math.random() * 96), i * 16, y * 16); cols[i] = y * 16 > cv.height && Math.random() > .975 ? 0 : y + 1; }); }, 50);
-  setTimeout(() => {
-    const w = $('#win'); w.hidden = false;
-    w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>Finishing time: <b>${fmt(j.ms)}</b> &nbsp; Rank: <b>#${j.rank}</b> &nbsp; Solved at: <b>${gstTime(Date.now())}</b></p>
-    ${LESSON}<button id="cl">CLOSE</button></div>`;
-    $('#cl').addEventListener('click', () => { w.hidden = true; clearInterval(rainT); cv.hidden = true; winning = false; if (st && st.status === 'ended') showFinal(); });
-  }, 2500);
+  solved = true;
+  log(`ACCESS GRANTED — rank #${j.rank}, finishing time ${fmt(j.ms)}.`, 'ok');
+  if (st && st.status === 'ended') showFinal();
 }
 
 // ---- class selection + intro ----

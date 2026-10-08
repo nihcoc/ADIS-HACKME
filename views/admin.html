@@ -16,8 +16,8 @@
       <p>Start time (GST): <input type="datetime-local" id="sched"> <button id="ss">SCHEDULE</button> <button id="sc">CLEAR</button></p><p id="sinfo" class="dim"></p>
       <p>Claimed classes: <span id="claimed"></span></p><p>Release a class: <input id="rel" size="5" placeholder="e.g. 10A"> <button id="rb">RELEASE</button></p>
     </section>
-    <section class="admin-card"><h2>CLOSEST GUESS SO FAR</h2><p id="topGuess">No guesses yet.</p><h3>BY CLASS</h3><table id="best"></table></section>
-    <section class="admin-card"><h2>LIVE MESSAGE / HINT</h2><textarea id="message" rows="3" maxlength="500" placeholder="Write a hint or announcement for all players"></textarea><p><span id="msgInfo" class="dim">Nothing released yet.</span></p><button id="releaseMessage">RELEASE TO ALL</button></section>
+    <section class="admin-card"><h2>CLOSEST GUESS SO FAR</h2><p id="topGuess">No guesses yet.</p><h3>TOP 10 BY CLASS</h3><table id="best"></table></section>
+    <section class="admin-card"><h2>LIVE MESSAGE / HINT</h2><textarea id="message" rows="3" maxlength="500" placeholder="Write a hint or announcement"></textarea><p>Send to: <input id="messageTarget" maxlength="4" placeholder="ALL or 10A" value="ALL"></p><p><span id="msgInfo" class="dim">Nothing released yet.</span></p><button id="releaseMessage">SEND MESSAGE</button></section>
     <section class="admin-card"><h2>NETWORK STATISTICS</h2><p id="network"></p></section>
     <section class="admin-card"><h2>SOLVERS</h2><table id="sv"></table></section>
     <section class="admin-card admin-waterfall"><h2>GUESS WATERFALL <small>(latest 10)</small></h2><div class="waterfall-tools"><label for="waterfallSort">Sort by:</label> <select id="waterfallSort"><option value="latest">Latest first</option><option value="class">Class</option></select></div><table id="waterfall"></table></section>

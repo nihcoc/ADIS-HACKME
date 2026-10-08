@@ -41,7 +41,7 @@ function live() {
     const waterfall = [...(s.waterfall || [])];
     if ($('#waterfallSort').value === 'class') waterfall.sort((a, b) => (a.cls || '').localeCompare(b.cls || '', undefined, { numeric: true }) || Date.parse(b.at) - Date.parse(a.at));
     tableRows('waterfall', ['AT', 'CLASS', 'GUESS', 'SCORE', 'ELAPSED'], waterfall, x => [gst(x.at), x.cls || '', x.guess, `${x.tier} (${x.score}%)`, fmt(x.ms)]);
-    $('#msgInfo').textContent = s.hints && s.hints.length ? `Released: ${s.hints.map(h => h.text).join(' | ')}` : 'Nothing released yet.';
+    $('#msgInfo').textContent = s.hints && s.hints.length ? `Released: ${s.hints.map(h => `[${h.target === 'all' ? 'ALL' : h.target}] ${h.text}`).join(' | ')}` : 'Nothing released yet.';
   };
   $('#waterfallSort').addEventListener('change', () => lastState && render(lastState));
   let last = Date.now();
@@ -57,7 +57,7 @@ async function login() {
 $('#go').addEventListener('click', login);
 $('#pw').addEventListener('keydown', e => e.key === 'Enter' && login());
 document.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => { if (b.dataset.a !== 'reset' || confirm('Reset the event and clear solvers?')) post('/api/admin/action', { action: b.dataset.a }); }));
-$('#releaseMessage').addEventListener('click', async () => { const text = $('#message').value.trim(); if (!text) return; const r = await post('/api/admin/message', { text }); if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || 'Could not release message.'); return; } $('#message').value = ''; });
+$('#releaseMessage').addEventListener('click', async () => { const text = $('#message').value.trim(), target = $('#messageTarget').value.trim() || 'ALL'; if (!text) return; const r = await post('/api/admin/message', { text, target }); if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || 'Could not send message.'); return; } $('#message').value = ''; $('#messageTarget').value = 'ALL'; });
 $('#ss').addEventListener('click', async () => { const v = $('#sched').value; if (!v) return alert('Pick a date and time (GST)'); const r = await post('/api/admin/config', { startAt: Date.parse(v + ':00+04:00') }); if (!r.ok) alert('Pick a future time, and schedule only before the event starts.'); });
 $('#sc').addEventListener('click', () => post('/api/admin/config', { startAt: null }));
 $('#rb').addEventListener('click', async () => { const r = await post('/api/admin/release', { cls: $('#rel').value.trim().toUpperCase() }); if (!r.ok) alert('That class is not claimed.'); $('#rel').value = ''; });
