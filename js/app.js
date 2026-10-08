@@ -105,7 +105,7 @@ sendPing(); setInterval(sendPing, 10000);
 
 // ---- fictional sites ----
 const img = (s, a = '') => `<img src="${esc(s)}" alt="${esc(a)}">`;
-const POST_ORDER = [1, 5, 3, 0, 2, 4]; // shuffled display order; metadata stays with each photo
+const POST_ORDER = [1, 5, 3, 0, 2, 4, 6]; // shuffled display order; metadata stays with each photo
 const postImage = p => cls.match(/^12[A-G]$/) ? p.image.replace(/photo1\.jpg$/, 'photokes.jpg') : p.image;
 const ph = () => Object.assign(document.createElement('div'), { className: 'ph', textContent: '📷' });
 const cmts = p => p.comments && p.comments.length ? `<div class="cmts"><b>Comments (${p.comments.length})</b>${p.comments.map(c => `<p><b>${esc(c.user)}</b> ${esc(c.text)}<small>${esc(c.date)}</small></p>`).join('')}</div>` : '';
@@ -200,13 +200,22 @@ const C = {
     `Messages: ${st.hints.length} released`],
   clear: () => { out.innerHTML = ''; return []; }
 };
+let proximityPending = false;
 async function proximity() {
+  if (proximityPending) return log('Proximity check already in progress…', 'dim');
+  proximityPending = true;
+  try {
   const r = await fetch('/api/proximity', { method: 'POST' }), j = await r.json().catch(() => ({}));
-  if (!r.ok) return log(j.error || 'ERROR', 'err');
+  if (!r.ok) {
+    log(j.error || 'ERROR', 'err');
+    if (Number.isInteger(j.checksLeft)) log(`${j.checksLeft} of 5 proximity checks left`, 'dim');
+    return;
+  }
   const line = (l, x) => log(`${l}: ${x.guess}   [${x.tier} ${x.score}%]`, x.tier === 'COLD' ? 'dim' : 'hint');
   line('HOTTEST guess', j.hot);
   if (j.cold.guess !== j.hot.guess) line('COLDEST guess', j.cold); else log('(only one guess so far, so it is both your hottest and coldest)', 'dim');
   log(`${j.checksLeft} of 5 proximity checks left`, 'dim');
+  } finally { proximityPending = false; }
 }
 async function submit(code) {
   if (!code) return log('usage: submit <code>', 'err');

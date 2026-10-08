@@ -160,6 +160,30 @@
             "date": "2025-02-19"
           }
         ]
+      },
+      {
+        "image": "/assets/grammie/photo7.jpg",
+        "caption": "Back together at the LSE reunion",
+        "date": "2025-06-14",
+        "location": "London School of Economics, London",
+        "description": "Kuriakose catching up with his university friends at an LSE reunion.",
+        "comments": [
+          {
+            "user": "arjun.nair",
+            "text": "Feels like yesterday we were all on campus!",
+            "date": "2025-06-14"
+          },
+          {
+            "user": "sarah.m",
+            "text": "So good to see everyone again.",
+            "date": "2025-06-14"
+          },
+          {
+            "user": "kuria.boss",
+            "text": "Best weekend catching up with the LSE crew.",
+            "date": "2025-06-15"
+          }
+        ]
       }
     ]
   },

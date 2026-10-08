@@ -20,7 +20,7 @@ Keep the real answer only in your private `.env` as `FINAL_CODE`. Never commit `
 `index.html`, `css/`, `js/` and `assets/` live in the project root. Express serves the root through an **allowlist** (`/`, `/index.html`, `/css/`, `/js/`, `/assets/`), so `server.js`, `.env`, `data/` and `views/` are never reachable. `/assets/grammie/` returns 403 until the event starts.
 
 ## Replacing photos and clues
-- Photos: put `photo1.jpg`-`photo4.jpg` in `assets/grammie/` and the avatar at `assets/profile/avatar.jpg`.
+- Photos: put `photo1.jpg`-`photo7.jpg` in `assets/grammie/` and the avatar at `assets/profile/avatar.jpg`.
 - Captions, image descriptions and profile content: edit `data/puzzle.json`. It is served only through `GET /api/puzzle` after the event starts, and never contains the answer.
 
 ## Classes, scheduling and GST
