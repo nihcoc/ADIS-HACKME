@@ -7,11 +7,16 @@ const PUZZLE_FILE = path.join(__dirname, 'data', 'puzzle.json');
 const { SESSION_SECRET, ADMIN_PASSWORD, FINAL_CODE } = E;
 if (!SESSION_SECRET || !ADMIN_PASSWORD || !FINAL_CODE) { console.error('Set SESSION_SECRET, ADMIN_PASSWORD and FINAL_CODE.'); process.exit(1); }
 
-const LIMIT = Math.max(1, parseInt(E.AUTO_END_AFTER, 10) || 3); // game auto-ends after this many solvers
+const LIMIT = Math.max(1, parseInt(E.AUTO_END_AFTER, 10) || 3); // game auto-ends after this many solved classes
 // ---- state (memory + JSON file) ----
-let S = { status: 'waiting', accum: 0, since: null, board: false, solvers: [], startAt: null, claims: {}, hints: [] };
+let S = { status: 'waiting', accum: 0, since: null, board: false, solvers: [], startAt: null, claims: {}, hints: [], bestByClass: {}, playerGuesses: {}, pxUsedByPlayer: {} };
 try { Object.assign(S, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch {}
 if (!Array.isArray(S.hints)) S.hints = [];
+if (!Array.isArray(S.solvers)) S.solvers = [];
+if (!Array.isArray(S.guessWaterfall)) S.guessWaterfall = [];
+for (const key of ['bestByClass', 'playerGuesses', 'pxUsedByPlayer']) if (!S[key] || typeof S[key] !== 'object' || Array.isArray(S[key])) S[key] = {};
+for (const [cls, g] of Object.entries(S.bestByClass)) if (!g || g.cls !== cls || !Number.isFinite(g.score) || !Number.isFinite(g.ms)) delete S.bestByClass[cls];
+for (const g of S.guessWaterfall) if (g && typeof g.cls === 'string' && Number.isFinite(g.score) && Number.isFinite(g.ms) && (!S.bestByClass[g.cls] || g.score > S.bestByClass[g.cls].score)) S.bestByClass[g.cls] = g;
 const save = () => { try { fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true }); fs.writeFileSync(STATE_FILE, JSON.stringify(S)); } catch (e) { console.error('persist failed', e.message); } };
 const elapsed = () => S.accum + (S.status === 'running' ? Date.now() - S.since : 0);
 const released = (pid, admin) => S.hints
@@ -20,8 +25,7 @@ const released = (pid, admin) => S.hints
 
 const pc = new Map(), ac = new Set();
 function rankedGuesses() {
-  const best = new Map();
-  for (const g of S.guessWaterfall || []) if (!best.has(g.cls) || g.score > best.get(g.cls).score) best.set(g.cls, g);
+  const best = new Map(Object.entries(S.bestByClass || {}));
   for (const solver of S.solvers) best.set(solver.cls, { ...best.get(solver.cls), cls: solver.cls, guess: 'SOLVED', score: 100, tier: 'SOLVED', solved: true, ms: solver.ms, at: solver.at });
   return [...best.values()].sort((a, b) => b.score - a.score || Number(b.solved) - Number(a.solved) || a.ms - b.ms);
 }
@@ -89,11 +93,13 @@ const CLASS_RE = /^(?:9[A-G]|10[A-H]|1[12][A-G])$/;
 S.claims ||= {};
 for (const c of Object.keys(S.claims)) if (!CLASS_RE.test(c)) delete S.claims[c];
 const classOf = p => Object.keys(S.claims).find(k => S.claims[k] === p) || null;
-const guesses = new Map(), pxUsed = new Map(), telemetry = new Map(); // per player: guesses, proximity checks, network stats
+const guesses = new Map(Object.entries(S.playerGuesses).map(([pid, gs]) => [pid, Array.isArray(gs) ? gs : []]));
+const pxUsed = new Map(Object.entries(S.pxUsedByPlayer).map(([pid, n]) => [pid, Number.isInteger(n) && n >= 0 ? n : 0]));
+const telemetry = new Map(); // per player: network stats
 
 // Closeness of a guess to FINAL_CODE, 0-100. Works for ANY password: it only compares characters.
 // 60% "coverage" = share of the password found in the guess as shared chunks (2+ chars, each char used once)
-// 40% edit-distance similarity (Levenshtein). Case-insensitive.
+// 40% edit-distance similarity (Levenshtein). Password matching is case-sensitive.
 function lev(a, b) {
   let p = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i++) {
@@ -118,7 +124,7 @@ function cover(a, b) {
   }
 }
 const score = guess => {
-  const a = guess.toLowerCase(), b = FINAL_CODE.toLowerCase();
+  const a = guess, b = FINAL_CODE;
   return Math.round(100 * (0.6 * Math.min(1, cover(a, b) / b.length) + 0.4 * Math.max(0, 1 - lev(a, b) / Math.max(a.length, b.length))));
 };
 const tier = s => s >= 70 ? 'HOT' : s >= 35 ? 'WARM' : 'COLD';
@@ -139,8 +145,11 @@ app.post('/api/submit', subLimit, (req, res) => {
   }
   const gs = guesses.get(req.pid) || []; gs.push({ g: code.trim(), s: score(code.trim()) }); guesses.set(req.pid, gs.slice(-200));
   const sc = score(code.trim());
+  const ms = elapsed(), at = new Date().toISOString(), previous = S.bestByClass[cls];
+  if (!previous || sc > previous.score) S.bestByClass[cls] = { cls, guess: code.trim(), score: sc, tier: tier(sc), ms, at };
   if (!Array.isArray(S.guessWaterfall)) S.guessWaterfall = [];
-  S.guessWaterfall.push({ cls, guess: code.trim(), score: sc, tier: tier(sc), ms: elapsed(), at: new Date().toISOString() });
+  S.playerGuesses[req.pid] = guesses.get(req.pid);
+  S.guessWaterfall.push({ cls, guess: code.trim(), score: sc, tier: tier(sc), ms, at });
   if (S.guessWaterfall.length > 500) S.guessWaterfall.splice(0, S.guessWaterfall.length - 500);
   save();
   broadcast();
@@ -171,6 +180,7 @@ app.post('/api/proximity', subLimit, (req, res) => {
   if (!gs.length) return res.status(400).json({ error: 'SUBMIT A GUESS FIRST' });
   if (n >= 5) return res.status(403).json({ error: 'NO PROXIMITY CHECKS LEFT', checksLeft: 0 });
   pxUsed.set(req.pid, n + 1);
+  S.pxUsedByPlayer[req.pid] = n + 1; save();
   const hot = gs.reduce((a, b) => b.s > a.s ? b : a), cold = gs.reduce((a, b) => b.s < a.s ? b : a), o = x => ({ guess: x.g, tier: tier(x.s), score: x.s });
   res.json({ hot: o(hot), cold: o(cold), checksLeft: 4 - n });
 });
@@ -197,7 +207,7 @@ app.post('/api/admin/action', need, (req, res) => {
   else if (a === 'pause' && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'paused' });
   else if (a === 'resume' && S.status === 'paused') Object.assign(S, { status: 'running', since: now });
   else if (a === 'end' && (S.status === 'running' || S.status === 'paused')) Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
-  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null, claims: {}, hints: [], guessWaterfall: [] }); guesses.clear(); pxUsed.clear(); telemetry.clear(); }
+  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null, claims: {}, hints: [], guessWaterfall: [], bestByClass: {}, playerGuesses: {}, pxUsedByPlayer: {} }); guesses.clear(); pxUsed.clear(); telemetry.clear(); }
   else return res.status(400).json({ error: 'INVALID ACTION' });
   save(); broadcast(); res.json({ ok: true });
 });
@@ -230,18 +240,15 @@ app.post('/api/admin/message', need, (req, res) => {
   save(); broadcast(); res.json({ ok: true, n: S.hints.length });
 });
 
-// ---- static files: served from the project root (no public/ folder) ----
-// Only an allowlist of paths is exposed, so server.js, .env, data/ and views/ are never reachable.
-const serve = express.static(__dirname, { dotfiles: 'ignore', setHeaders: (res, f) => { if (/[\\/]assets[\\/]/.test(f)) res.set('Cache-Control', 'public, max-age=3600'); } });
-const OPEN = ['/css/', '/js/', '/assets/'];
-app.use((req, res, next) => {
-  const p = req.path;
-  if (p.includes('..')) return res.status(400).end();
-  if (p === '/' || p === '/index.html' || OPEN.some(o => p.startsWith(o))) {
-    if (p.startsWith('/assets/grammie/') && S.status === 'waiting') return res.status(403).end();
-    return serve(req, res, next);
-  }
-  res.status(404).end();
-});
+// ---- static files: each public directory has its own root ----
+const staticOptions = { dotfiles: 'ignore', setHeaders: (res, f) => { if (/[\\/]assets[\\/]/.test(f)) res.set('Cache-Control', 'public, max-age=3600'); } };
+app.get(['/', '/index.html'], (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.use('/css', express.static(path.join(__dirname, 'css'), staticOptions));
+app.use('/js', express.static(path.join(__dirname, 'js'), staticOptions));
+app.use('/assets', (req, res, next) => {
+  if (S.status === 'waiting') return res.status(403).end();
+  next();
+}, express.static(path.join(__dirname, 'assets'), staticOptions));
+app.use((req, res) => res.status(404).end());
 
 app.listen(PORT, () => console.log(`PassTrace listening on :${PORT}`));
