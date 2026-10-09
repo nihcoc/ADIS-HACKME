@@ -262,8 +262,8 @@ function showFinal() {
   if (finalShown) return;
   finalShown = true; startRain();
   const w = $('#win'); w.hidden = false;
-  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final class progress:</p>${st.revealedPassword ? `<p>Challenge password: <b>${esc(st.revealedPassword)}</b></p>` : ''}
-  ${proximityBoard()}${LESSON}${CREDITS}</div>`;
+  w.innerHTML = `<div class="box final-box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><div class="final-layout"><div class="final-info"><p>The event is over. Final class progress:</p>${st.revealedPassword ? `<p>Challenge password: <b>${esc(st.revealedPassword)}</b></p>` : ''}
+  ${proximityBoard()}${LESSON}</div><div class="credits-viewport" aria-label="Rolling event credits"><div class="credits-roll">${CREDITS}</div></div></div></div>`;
 }
 function showWinner(j) {
   startRain();

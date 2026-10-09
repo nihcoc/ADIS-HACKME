@@ -65,6 +65,13 @@ header,main{position:relative;z-index:1}
 #win{position:fixed;inset:0;z-index:201;display:grid;place-items:center;padding:12px;background:rgba(0,0,0,.6)}
 #win[hidden]{display:none}
 #win .box{background:#020603;border:1px solid var(--g);max-width:640px;max-height:92vh;overflow:auto;padding:18px}
+#win .final-box{width:min(1100px,96vw);max-width:1100px;overflow:hidden}
+.final-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.final-info{min-width:0;max-height:70vh;overflow-y:auto;padding-right:8px}
+.credits-viewport{position:relative;min-width:0;height:70vh;overflow:hidden;border:1px solid var(--d);background:#010402}
+.credits-roll{position:absolute;top:100%;left:0;right:0;animation:credits-roll 75s linear infinite}
+@keyframes credits-roll{to{transform:translateY(calc(-100% - 70vh))}}
+.credits-roll .thanks{border:0;margin:0;padding:18px 12px}
 .thanks{border:1px solid var(--d);padding:10px;margin-top:18px}
 .thanks h3{margin:0 0 10px;color:#ffd34d}
 .thanks-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
@@ -75,7 +82,8 @@ header,main{position:relative;z-index:1}
 @media(max-width:800px){main{grid-template-columns:1fr!important}#term{position:static;height:60vh}}
 @media(max-width:560px){#commandList{grid-template-columns:1fr}}
 @media(max-width:480px){.thanks-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+@media(max-width:800px){.final-layout{grid-template-columns:1fr}.final-info{max-height:32vh}.credits-viewport{height:42vh}.final-box{width:min(640px,96vw)!important}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}.credits-roll{position:static}.credits-viewport{height:auto;max-height:50vh;overflow:auto}}
 
 #apps .app{background:#031a0c;border:1px solid var(--d);color:var(--g);font:inherit;padding:14px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
 #apps button.app:hover,#apps button.app:focus-visible{border-color:var(--g);box-shadow:0 0 14px rgba(0,255,102,.35);outline:0}
