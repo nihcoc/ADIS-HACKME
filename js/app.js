@@ -246,8 +246,14 @@ inp.addEventListener('keydown', async e => {
 const TIPS = `<h3>TOP 5 SECURITY TIPS</h3><ol><li>Don't use personal information in passwords.</li><li>Avoid combining pet names, dates, school information, or other public details.</li><li>Assume information posted publicly can be collected and correlated.</li><li>Use long, unique, randomly generated passwords.</li><li>Use MFA or passkeys whenever available.</li></ol>`;
 const LESSON = `<h3>WHAT THIS ATTACK TEACHES</h3><p>Publicly available information can be combined to make passwords predictable. Pet names, birth and graduation years, schools, employers, locations, hobbies, family names, relationships and social-media posts each look harmless alone, but together they produce useful guesses. A pattern like <i>pet name + meaningful year + common symbol</i> is easy to predict. This exercise shows why to avoid such patterns. Never try this against real people or accounts.</p>
     ${TIPS}<h3>PRECAUTIONS</h3><ul><li>Review what your public profiles reveal: pet names, school and graduation years, employers, locations and hobbies.</li><li>Tighten privacy settings and delete old posts that give away personal details.</li><li>Never reuse a password. Keep unique ones in a password manager.</li><li>Avoid security questions whose answers can be found online.</li><li>Turn on MFA or passkeys for email, banking and social accounts.</li><li>Never try this against real people or accounts.</li></ul>`;
-const THANKS = ['Principal', 'Vice Principal', 'Bindu Ma’am', 'Juhi Ma’am', 'Lakshmi Ma’am', 'Harish', 'Mohit', 'Dakshaharan', 'Arnold', 'Daniel', 'Ihsaan', 'Aman', 'Joel', 'Fizan', 'Advay', 'Kartik', 'Kaustubh', 'Tanish', 'Aarav Kasurde', 'Nathaniel Philip', 'Akash', 'Nuraaz', 'Anshuman', 'Atul', 'M.D. Anas', 'Tamilvanan', 'Tony', 'Hamdan', 'Rubhan', 'Marmik', 'Ahil', 'Ujjwal', 'Shivek', 'Jaijith', 'Ibrahim', 'Zac', 'Keshav Ramnath', 'Claude', 'Agam'];
-const CREDITS = `<section class="thanks"><h3>Thanks to</h3><div class="thanks-grid">${THANKS.map(name => `<div class="thanks-card">${esc(name)}</div>`).join('')}</div><p class="thanks-special">Special thanks to Chris Vinod for his huge muscles.</p><p class="thanks-signoff">Thank you for your participation.<br>With love, NeuralNex</p><p class="thanks-created"><strong>Created by Alfred, Haron - 12 C</strong></p></section>`;
+const THANKS_GROUPS = [
+  { title: 'School leadership', message: 'Thank you to our school leadership and faculty for their support and encouragement.', names: ['Principal', 'Vice Principal', 'Bindu Ma’am'] },
+  { title: 'Our teachers', message: 'Our heartfelt gratitude to our teachers for their guidance and support throughout the event.', names: ['Juhi Ma’am', 'Lekshmi Ma’am'] },
+  { title: 'Student organisers', message: 'A huge thank you to our student organisers for their teamwork, dedication, and hard work in bringing this event to life.', names: ['Harish', 'Mohit', 'Dakshaharan', 'Arnold', 'Daniel', 'Ihsaan', 'Aman', 'Joel', 'Fizan', 'Advay', 'Kartik', 'Kaustubh', 'Tanish', 'Aarav Kasurde', 'Nathaniel Philip', 'Akash', 'Nuraaz', 'Anshuman', 'Atul', 'M.D. Anas', 'Tamilvanan', 'Tony', 'Hamdan', 'Rubhan', 'Marmik', 'Ahil', 'Ujjwal', 'Shivek', 'Jaijith', 'Ibrahim', 'Zac', 'Keshav Ramnath', 'Agam'] }
+];
+function creditsRoll() {
+  return `${THANKS_GROUPS.map(group => `<section class="credits-group"><h3>${esc(group.title)}</h3>${group.names.map(name => `<p>${esc(name)}</p>`).join('')}</section>`).join('')}<p class="credits-signoff">With love, NeuralNex</p><p class="credits-signoff credits-creator">Made by Alfred and Haron - 12C</p>`;
+}
 function startRain() {
   const cv = $('#rain'); cv.hidden = false;
   if (rainT) return;
@@ -259,11 +265,11 @@ function startRain() {
 function stopRain() { if (rainT) clearInterval(rainT); rainT = null; $('#rain').hidden = true; }
 addEventListener('resize', () => { if (rainT) { const cv = $('#rain'); cv.width = innerWidth; cv.height = innerHeight; } });
 function showFinal() {
+  if (!st || st.status !== 'ended') return;
   if (finalShown) return;
   finalShown = true; startRain();
   const w = $('#win'); w.hidden = false;
-  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final class progress:</p>${st.revealedPassword ? `<p>Challenge password: <b>${esc(st.revealedPassword)}</b></p>` : ''}
-  ${proximityBoard()}${LESSON}${CREDITS}</div>`;
+  w.innerHTML = `<div class="box end-layout"><section class="end-panel"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final class progress:</p>${st.revealedPassword ? `<p>Challenge password: <b>${esc(st.revealedPassword)}</b></p>` : ''}${proximityBoard()}${LESSON}</section><section class="credits-panel"><h2 class="glitch" data-t="CREDITS">CREDITS</h2><div class="credits-viewport" aria-label="Rolling event credits"><div class="credits-roll">${creditsRoll()}</div></div></section></div>`;
 }
 function showWinner(j) {
   startRain();
@@ -271,9 +277,13 @@ function showWinner(j) {
   w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>You solved the challenge.</p><p>Rank: <b>#${j.rank}</b> &nbsp; Time: <b>${fmt(j.ms)}</b></p>${TIPS}<p class="dim">The event continues until players from ${st.limit || 3} different classes solve it.</p><button id="dismissWin" type="button">RETURN TO TERMINAL</button></div>`;
   $('#dismissWin').addEventListener('click', () => { w.hidden = true; stopRain(); });
 }
-function win(j) {
+async function win(j) {
   solved = true;
   log(`ACCESS GRANTED — rank #${j.rank}, finishing time ${fmt(j.ms)}.`, 'ok');
+  try {
+    const r = await fetch('/api/event', { cache: 'no-store' });
+    if (r.ok) onState(await r.json());
+  } catch {}
   if (st && st.status === 'ended') showFinal(); else showWinner(j);
 }
 
