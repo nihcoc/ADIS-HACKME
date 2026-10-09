@@ -163,7 +163,7 @@ function waiting() {
     <li>When it starts, three fictional public profiles unlock: Grammie, Linkout and Hooked.</li>
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
-    <li>Proximity: type <b>proximity</b> to see the COLD, WARM or HOT score of your latest guess. You get 5 proximity checks.</li>
+    <li>Proximity: type <b>proximity</b> to see the percentage for your latest, hottest and coldest guesses. You get 5 proximity checks.</li>
     <li>The event ends automatically once players from ${st.limit || 3} different classes solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
     <li>Admins can release hints or messages live. Type <b>hints</b> to read released messages.</li>
     <li>The first correct submission is announced live to all players.</li>
@@ -186,7 +186,7 @@ function desk() {
 }
 
 // ---- commands ----
-const COMMANDS = ['legend: how this exercise works', 'hints: show released messages', 'status: event, timer and message status', 'submit <code>: submit your answer', 'proximity: latest guess score with percentage (5 checks)', 'clear: clear the screen'];
+const COMMANDS = ['legend: how this exercise works', 'hints: show released messages', 'status: event, timer and message status', 'submit <code>: submit your answer', 'proximity: latest, hottest and coldest guesses with percentages (5 checks)', 'clear: clear the screen'];
 const commandList = $('#commandList');
 if (commandList) COMMANDS.forEach(command => {
   const item = document.createElement('div');
@@ -213,6 +213,8 @@ async function proximity() {
   }
   const line = (l, x) => log(`${l}: ${x.guess}   [${x.tier} ${x.score}%]`, x.tier === 'COLD' ? 'dim' : 'hint');
   line('LATEST guess', j.latest);
+  line('HOTTEST guess', j.hot);
+  if (j.cold.guess !== j.hot.guess) line('COLDEST guess', j.cold); else log('(only one guess so far, so it is both your hottest and coldest)', 'dim');
   log(`${j.checksLeft} of 5 proximity checks left`, 'dim');
   } finally { proximityPending = false; }
 }

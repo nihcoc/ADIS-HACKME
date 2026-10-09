@@ -181,8 +181,8 @@ app.post('/api/proximity', subLimit, (req, res) => {
   if (n >= 5) return res.status(403).json({ error: 'NO PROXIMITY CHECKS LEFT', checksLeft: 0 });
   pxUsed.set(req.pid, n + 1);
   S.pxUsedByPlayer[req.pid] = n + 1; save();
-  const latest = gs[gs.length - 1];
-  res.json({ latest: { guess: latest.g, tier: tier(latest.s), score: latest.s }, checksLeft: 4 - n });
+  const hot = gs.reduce((a, b) => b.s > a.s ? b : a), cold = gs.reduce((a, b) => b.s < a.s ? b : a), latest = gs[gs.length - 1], o = x => ({ guess: x.g, tier: tier(x.s), score: x.s });
+  res.json({ latest: o(latest), hot: o(hot), cold: o(cold), checksLeft: 4 - n });
 });
 
 // ---- admin ----
