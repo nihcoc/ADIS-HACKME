@@ -63,11 +63,11 @@ button:focus-visible{outline:2px solid #b6ffd6;outline-offset:2px}
 .proximity-board{border:1px solid var(--d);padding:8px 10px;margin:10px 0}.proximity-board h3{margin:0 0 4px;color:#ffd34d;font-size:13px}.proximity-board .lbt{margin:0}.proximity-board .lbt tr:nth-child(2){color:#ffd34d}
 #rain{position:fixed;inset:0;z-index:200;pointer-events:none;background:#000}
 header,main{position:relative;z-index:1}
-#win{position:fixed;inset:0;z-index:201;display:grid;place-items:center;padding:12px;background:rgba(0,0,0,.6)}
+#win{position:fixed;inset:0;z-index:201;display:grid;place-items:center;padding:12px;background:rgba(0,0,0,.38)}
 #win[hidden]{display:none}
 #win .box{background:#020603;border:1px solid var(--g);max-width:640px;max-height:92vh;overflow:auto;padding:18px}
-#win .end-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:14px;width:min(1400px,92vw);max-width:none;height:88vh;max-height:88vh;overflow:hidden;padding:14px}
-.end-panel,.credits-panel{min-width:0;min-height:0;border:1px solid var(--d);padding:14px;background:#031009}
+#win .end-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:12px;width:min(1180px,82vw);max-width:none;height:78vh;max-height:78vh;overflow:hidden;padding:12px}
+.end-panel,.credits-panel{min-width:0;min-height:0;border:1px solid var(--d);padding:12px;background:#031009}
 .end-panel{overflow:auto}
 .credits-panel{display:flex;flex-direction:column;overflow:hidden}
 .end-panel>h2,.credits-panel>h2{margin:0 0 10px;color:#ffd34d;text-align:center}
@@ -91,7 +91,7 @@ header,main{position:relative;z-index:1}
 .credits-creator{color:#fff;font-size:25px;font-weight:700}
 @keyframes credits-crawl{0%,5.56%{transform:translateY(0)}28%{transform:translateY(-11%)}40%{transform:translateY(-19%)}100%{transform:translateY(-100%)}}
 @media(max-width:800px){main{grid-template-columns:1fr!important}#term{position:static;height:60vh}}
-@media(max-width:800px){#win .end-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.2fr) minmax(200px,.8fr);width:92vw;height:88vh;padding:10px;gap:8px}.end-panel,.credits-panel{padding:10px}.credits-creator{font-size:20px}}
+@media(max-width:800px){#win .end-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.2fr) minmax(180px,.8fr);width:86vw;height:80vh;padding:10px;gap:8px}.end-panel,.credits-panel{padding:10px}.credits-creator{font-size:20px}}
 @media(max-width:560px){#commandList{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 @media(prefers-reduced-motion:reduce){.credits-viewport{overflow:auto;mask-image:none}}
