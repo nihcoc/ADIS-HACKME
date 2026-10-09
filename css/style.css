@@ -88,12 +88,12 @@ header,main{position:relative;z-index:1}
 .credits-roll{padding:0 12px;animation:credits-crawl 40s linear infinite}
 .credits-copy{display:flow-root}
 .credits-group{margin:0 0 22px}
-.credits-group h3{display:table;margin:0 auto 12px;padding:6px 14px;border:1px solid #ffd34d;color:#ffd34d;font-size:19px;text-align:center}
+.credits-group h3{display:grid;place-items:center;width:220px;min-height:40px;margin:0 auto 12px;padding:6px 14px;border:1px solid #ffd34d;color:#ffd34d;font-size:19px;text-align:center}
 .credit-list{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
 .credits-students .credit-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}
-.credits-group .credit-name{max-width:320px;margin:5px auto;padding:4px 6px;border:1px solid var(--d);background:#031a0c;color:var(--g);font:inherit;line-height:1.4;text-align:center;overflow-wrap:anywhere}
-.credits-students .credit-name{max-width:none;width:100%;margin:0}
-.credits-gap{height:72px}
+.credits-group .credit-name{width:100%;max-width:320px;min-height:34px;margin:5px auto;padding:4px 6px;border:1px solid var(--d);background:#031a0c;color:var(--g);font:inherit;line-height:1.4;text-align:center;overflow-wrap:anywhere;display:grid;place-items:center}
+.credits-students .credit-name{max-width:none;margin:0}
+.credits-gap{height:240px}
 .credits-signoff{margin:14px 0;color:var(--g);font-size:16px;font-weight:600}
 .credits-creator{color:#fff;font-size:16px;font-weight:700}
 @keyframes credits-crawl{from{transform:translateY(0)}to{transform:translateY(-50%)}}
