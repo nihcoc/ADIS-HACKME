@@ -71,6 +71,7 @@ header,main{position:relative;z-index:1}
 .thanks-card{display:grid;place-items:center;min-height:38px;padding:5px 3px;border:1px solid var(--d);background:#031a0c;text-align:center;overflow-wrap:anywhere;font-size:12px}
 .thanks-special{text-align:center;margin:14px 0 8px;color:var(--g);font-size:11px;font-weight:normal}
 .thanks-signoff{text-align:center;margin:14px 0 4px;color:#fff;font-size:15px}
+.thanks-created{text-align:center;margin:10px 0 2px;color:var(--g);font-size:16px}
 @media(max-width:800px){main{grid-template-columns:1fr!important}#term{position:static;height:60vh}}
 @media(max-width:560px){#commandList{grid-template-columns:1fr}}
 @media(max-width:480px){.thanks-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
