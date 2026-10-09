@@ -40,7 +40,6 @@ function eventOverlay(mode) {
     el.hidden = false; return;
   }
   if (mode !== 'running') { el.hidden = true; el.className = 'event-overlay'; return; }
-  startRain();
   el.className = 'event-overlay'; el.hidden = false;
   let count = 3;
   const draw = () => { el.innerHTML = `<div class="event-overlay-card"><span class="event-kicker">SYSTEMS UNLOCKING</span><strong class="count-number">${count > 0 ? count : 'GO'}</strong><span class="event-label">EVENT LIVE</span></div>`; };
@@ -79,7 +78,7 @@ function onState(d) {
   if (o) st.hints.filter(h => !o.hints.some(x => h.id ? x.id === h.id : x.n === h.n)).forEach(h => { log(`[MESSAGE ${h.n} RELEASED] ${h.text}`, 'hint'); popup(h); });
   if (o && o.first == null && st.first != null) log(`>> FIRST SUBMISSION RECEIVED at ${fmt(st.first)} by ${st.firstCls || 'a class'}. The race is on.`, 'ok');
   if (st.status === 'ended' && (!o || o.status !== 'ended')) showFinal();
-  if (st.status === 'waiting') { puz = null; solved = false; finalShown = false; $('#win').hidden = true; waiting(); if (o && o.status !== 'waiting') ensureClass(); }
+  if (st.status === 'waiting') { stopRain(); puz = null; solved = false; finalShown = false; $('#win').hidden = true; waiting(); if (o && o.status !== 'waiting') ensureClass(); }
   else if (!puz) load();
 }
 // Live updates over SSE, with a polling fallback for networks/tunnels that buffer or block event streams.
@@ -255,7 +254,6 @@ function startRain() {
 }
 function stopRain() { if (rainT) clearInterval(rainT); rainT = null; $('#rain').hidden = true; }
 addEventListener('resize', () => { if (rainT) { const cv = $('#rain'); cv.width = innerWidth; cv.height = innerHeight; } });
-startRain();
 function showFinal() {
   if (finalShown) return;
   finalShown = true; startRain();
