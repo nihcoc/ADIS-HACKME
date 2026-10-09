@@ -251,7 +251,8 @@ const THANKS_GROUPS = [
   { title: 'Student organisers', names: ['Agam', 'Harish', 'Mohit', 'Dakshaharan', 'Arnold', 'Daniel', 'Ihsaan', 'Aman', 'Joel', 'Fizan', 'Advay', 'Kartik', 'Kaustubh', 'Tanish', 'Aarav Kasurde', 'Nathaniel Philip', 'Akash', 'Nuraaz', 'Anshuman', 'Atul', 'M.D. Anas', 'Tamilvanan', 'Tony', 'Hamdan', 'Rubhan', 'Marmik', 'Ahil', 'Ujjwal', 'Shivek', 'Jaijith', 'Ibrahim', 'Zac', 'Keshav Ramnath', 'Claude'] }
 ];
 function creditsRoll() {
-  return `${THANKS_GROUPS.map(group => `<section class="credits-group"><h3>${esc(group.title)}</h3>${group.names.map(name => `<p class="credit-name">${esc(name)}</p>`).join('')}</section>`).join('')}<p class="credits-signoff credits-special">Special thanks to Chris Vinod(Sebastian).</p><p class="credits-signoff">Thank you for your participation.<br>With love, NeuralNex</p><p class="credits-signoff credits-creator">Created by Alfred, Haron - 12 C</p>`;
+  const credits = `${THANKS_GROUPS.map(group => `<section class="credits-group"><h3>${esc(group.title)}</h3>${group.names.map(name => `<p class="credit-name">${esc(name)}</p>`).join('')}</section>`).join('')}<p class="credits-signoff credits-special">Special thanks to Chris Vinod(Sebastian).</p><p class="credits-signoff">Thank you for your participation.<br>With love, NeuralNex</p><p class="credits-signoff credits-creator">Created by Alfred, Haron - 12 C</p>`;
+  return `<div class="credits-copy">${credits}</div><div class="credits-copy" aria-hidden="true">${credits}</div>`;
 }
 function startRain() {
   const cv = $('#rain'); cv.hidden = false;
