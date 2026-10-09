@@ -164,7 +164,7 @@ function waiting() {
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
     <li>Proximity: type <b>proximity</b> to see the percentage for your latest, hottest and coldest guesses. You get 5 proximity checks.</li>
-    <li>The event ends automatically once players from ${st.limit || 3} different classes solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
+    <li>The event ends automatically once players from ${st.limit || 3} different classes solve it. The final leaderboard, challenge password, precautions and tips are then shown to everyone.</li>
     <li>Admins can release hints or messages live. Type <b>hints</b> to read released messages.</li>
     <li>The first correct submission is announced live to all players.</li>
     <li>Play fair: do not share answers, and do not attack the server or any real person or account.</li>
@@ -262,7 +262,7 @@ function showFinal() {
   if (finalShown) return;
   finalShown = true; startRain();
   const w = $('#win'); w.hidden = false;
-  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final class progress:</p>
+  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="EVENT ENDED">EVENT ENDED</h2><p>The event is over. Final class progress:</p>${st.revealedPassword ? `<p>Challenge password: <b>${esc(st.revealedPassword)}</b></p>` : ''}
   ${proximityBoard()}${LESSON}${CREDITS}</div>`;
 }
 function showWinner(j) {

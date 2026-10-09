@@ -9,7 +9,7 @@ if (!SESSION_SECRET || !ADMIN_PASSWORD || !FINAL_CODE) { console.error('Set SESS
 
 const LIMIT = Math.max(1, parseInt(E.AUTO_END_AFTER, 10) || 3); // game auto-ends after this many solved classes
 // ---- state (memory + JSON file) ----
-let S = { status: 'waiting', accum: 0, since: null, board: false, solvers: [], startAt: null, claims: {}, hints: [], bestByClass: {}, playerGuesses: {}, pxUsedByPlayer: {} };
+let S = { status: 'waiting', accum: 0, since: null, board: false, solvers: [], startAt: null, claims: {}, hints: [], bestByClass: {}, playerGuesses: {}, pxUsedByPlayer: {}, endReason: null };
 try { Object.assign(S, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch {}
 if (!Array.isArray(S.hints)) S.hints = [];
 if (!Array.isArray(S.solvers)) S.solvers = [];
@@ -34,7 +34,8 @@ function snap(admin, pid) {
   const solvedRows = ranked.filter(x => x.solved), guessRows = ranked.filter(x => !x.solved).slice(0, Math.max(0, 6 - solvedRows.length));
   const s = { status: S.status, elapsedMs: el, hints: hs,
     players: pc.size, limit: LIMIT, startAt: S.status === 'waiting' ? S.startAt : null, untilStartMs: S.status === 'waiting' && S.startAt ? Math.max(0, S.startAt - Date.now()) : null, first: S.solvers.length ? S.solvers[0].ms : null, firstCls: S.solvers.length ? S.solvers[0].cls : null, board: (S.board || S.status === 'ended') ? S.solvers.map((x, i) => ({ rank: i + 1, cls: x.cls, ms: x.ms, at: x.at })) : null,
-    proximityBoard: [...solvedRows, ...guessRows].map((x, i) => ({ rank: i + 1, cls: x.cls, score: x.score, tier: x.tier, solved: !!x.solved, ms: x.solved ? x.ms : null })) };
+    proximityBoard: [...solvedRows, ...guessRows].map((x, i) => ({ rank: i + 1, cls: x.cls, score: x.score, tier: x.tier, solved: !!x.solved, ms: x.solved ? x.ms : null })),
+    revealedPassword: S.status === 'ended' && S.endReason === 'solved_limit' ? FINAL_CODE : null };
   if (admin) {
     const recent = [...(S.guessWaterfall || [])].slice(-10).reverse();
     const overallBest = ranked[0] || null;
@@ -49,7 +50,7 @@ function snap(admin, pid) {
 const send = (r, d) => r.write(`event: state\ndata: ${JSON.stringify(d)}\n\n`);
 const broadcast = () => { pc.forEach((pid, r) => send(r, snap(false, pid))); const a = snap(true); ac.forEach(r => send(r, a)); };
 setInterval(() => {
-  if (S.status === 'waiting' && S.startAt && Date.now() >= S.startAt) { Object.assign(S, { status: 'running', accum: 0, since: Date.now(), startAt: null }); save(); } // scheduled start
+  if (S.status === 'waiting' && S.startAt && Date.now() >= S.startAt) { Object.assign(S, { status: 'running', accum: 0, since: Date.now(), startAt: null, endReason: null }); save(); } // scheduled start
   broadcast();
 }, 1000);
 function sse(req, res, set) {
@@ -139,7 +140,7 @@ app.post('/api/submit', subLimit, (req, res) => {
   if (eq(code.trim(), FINAL_CODE)) {
     const ms = elapsed(); S.solvers.push({ cls, ms, at: new Date().toISOString(), pid: req.pid });
     const solvedClasses = new Set(S.solvers.map(x => x.cls)).size;
-    if (solvedClasses >= LIMIT && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
+    if (solvedClasses >= LIMIT && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'ended', endReason: 'solved_limit' });
     save(); broadcast();
     return res.json({ ok: true, ms, rank: S.solvers.length });
   }
@@ -203,11 +204,11 @@ app.get('/api/admin/state', need, (req, res) => res.json(snap(true)));
 app.get('/api/admin/stream', need, (req, res) => sse(req, res, ac));
 app.post('/api/admin/action', need, (req, res) => {
   const a = req.body && req.body.action, now = Date.now();
-  if (a === 'start' && S.status === 'waiting') Object.assign(S, { status: 'running', accum: 0, since: now, startAt: null });
+  if (a === 'start' && S.status === 'waiting') Object.assign(S, { status: 'running', accum: 0, since: now, startAt: null, endReason: null });
   else if (a === 'pause' && S.status === 'running') Object.assign(S, { accum: elapsed(), since: null, status: 'paused' });
   else if (a === 'resume' && S.status === 'paused') Object.assign(S, { status: 'running', since: now });
-  else if (a === 'end' && (S.status === 'running' || S.status === 'paused')) Object.assign(S, { accum: elapsed(), since: null, status: 'ended' });
-  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null, claims: {}, hints: [], guessWaterfall: [], bestByClass: {}, playerGuesses: {}, pxUsedByPlayer: {} }); guesses.clear(); pxUsed.clear(); telemetry.clear(); }
+  else if (a === 'end' && (S.status === 'running' || S.status === 'paused')) Object.assign(S, { accum: elapsed(), since: null, status: 'ended', endReason: 'admin' });
+  else if (a === 'reset') { Object.assign(S, { status: 'waiting', accum: 0, since: null, solvers: [], startAt: null, claims: {}, hints: [], guessWaterfall: [], bestByClass: {}, playerGuesses: {}, pxUsedByPlayer: {}, endReason: null }); guesses.clear(); pxUsed.clear(); telemetry.clear(); }
   else return res.status(400).json({ error: 'INVALID ACTION' });
   save(); broadcast(); res.json({ ok: true });
 });
