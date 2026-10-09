@@ -163,7 +163,7 @@ function waiting() {
     <li>When it starts, three fictional public profiles unlock: Grammie, Linkout and Hooked.</li>
     <li>Investigate them, correlate what you find, and work out the weak password the person chose.</li>
     <li>You can solve once. Rank is decided by finishing time.</li>
-    <li>Proximity: type <b>proximity</b> to see your hottest and coldest guess so far, rated COLD, WARM or HOT. You get 5 proximity checks.</li>
+    <li>Proximity: type <b>proximity</b> to see the COLD, WARM or HOT score of your latest guess. You get 5 proximity checks.</li>
     <li>The event ends automatically once players from ${st.limit || 3} different classes solve it. The final leaderboard, times, precautions and tips are then shown to everyone.</li>
     <li>Admins can release hints or messages live. Type <b>hints</b> to read released messages.</li>
     <li>The first correct submission is announced live to all players.</li>
@@ -186,7 +186,7 @@ function desk() {
 }
 
 // ---- commands ----
-const COMMANDS = ['legend: how this exercise works', 'hints: show released messages', 'status: event, timer and message status', 'submit <code>: submit your answer', 'proximity: hottest and coldest guesses with percentages (5 checks)', 'clear: clear the screen'];
+const COMMANDS = ['legend: how this exercise works', 'hints: show released messages', 'status: event, timer and message status', 'submit <code>: submit your answer', 'proximity: latest guess score with percentage (5 checks)', 'clear: clear the screen'];
 const commandList = $('#commandList');
 if (commandList) COMMANDS.forEach(command => {
   const item = document.createElement('div');
@@ -212,8 +212,7 @@ async function proximity() {
     return;
   }
   const line = (l, x) => log(`${l}: ${x.guess}   [${x.tier} ${x.score}%]`, x.tier === 'COLD' ? 'dim' : 'hint');
-  line('HOTTEST guess', j.hot);
-  if (j.cold.guess !== j.hot.guess) line('COLDEST guess', j.cold); else log('(only one guess so far, so it is both your hottest and coldest)', 'dim');
+  line('LATEST guess', j.latest);
   log(`${j.checksLeft} of 5 proximity checks left`, 'dim');
   } finally { proximityPending = false; }
 }
@@ -242,8 +241,9 @@ inp.addEventListener('keydown', async e => {
 });
 
 // ---- victory ----
+const TIPS = `<h3>TOP 5 SECURITY TIPS</h3><ol><li>Don't use personal information in passwords.</li><li>Avoid combining pet names, dates, school information, or other public details.</li><li>Assume information posted publicly can be collected and correlated.</li><li>Use long, unique, randomly generated passwords.</li><li>Use MFA or passkeys whenever available.</li></ol>`;
 const LESSON = `<h3>WHAT THIS ATTACK TEACHES</h3><p>Publicly available information can be combined to make passwords predictable. Pet names, birth and graduation years, schools, employers, locations, hobbies, family names, relationships and social-media posts each look harmless alone, but together they produce useful guesses. A pattern like <i>pet name + meaningful year + common symbol</i> is easy to predict. This exercise shows why to avoid such patterns. Never try this against real people or accounts.</p>
-    <h3>TOP 5 SECURITY TIPS</h3><ol><li>Don't use personal information in passwords.</li><li>Avoid combining pet names, dates, school information, or other public details.</li><li>Assume information posted publicly can be collected and correlated.</li><li>Use long, unique, randomly generated passwords.</li><li>Use MFA or passkeys whenever available.</li></ol><h3>PRECAUTIONS</h3><ul><li>Review what your public profiles reveal: pet names, school and graduation years, employers, locations and hobbies.</li><li>Tighten privacy settings and delete old posts that give away personal details.</li><li>Never reuse a password. Keep unique ones in a password manager.</li><li>Avoid security questions whose answers can be found online.</li><li>Turn on MFA or passkeys for email, banking and social accounts.</li><li>Never try this against real people or accounts.</li></ul>`;
+    ${TIPS}<h3>PRECAUTIONS</h3><ul><li>Review what your public profiles reveal: pet names, school and graduation years, employers, locations and hobbies.</li><li>Tighten privacy settings and delete old posts that give away personal details.</li><li>Never reuse a password. Keep unique ones in a password manager.</li><li>Avoid security questions whose answers can be found online.</li><li>Turn on MFA or passkeys for email, banking and social accounts.</li><li>Never try this against real people or accounts.</li></ul>`;
 function startRain() {
   const cv = $('#rain'); cv.hidden = false;
   if (rainT) return;
@@ -264,8 +264,8 @@ function showFinal() {
 function showWinner(j) {
   startRain();
   const w = $('#win'); w.hidden = false;
-  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>You solved the challenge.</p><p>Rank: <b>#${j.rank}</b> &nbsp; Time: <b>${fmt(j.ms)}</b></p><p class="dim">The event continues until players from ${st.limit || 3} different classes solve it.</p><button id="dismissWin" type="button">RETURN TO TERMINAL</button></div>`;
-  $('#dismissWin').addEventListener('click', () => { w.hidden = true; });
+  w.innerHTML = `<div class="box"><h2 class="glitch" data-t="ACCESS GRANTED">ACCESS GRANTED</h2><p>You solved the challenge.</p><p>Rank: <b>#${j.rank}</b> &nbsp; Time: <b>${fmt(j.ms)}</b></p>${TIPS}<p class="dim">The event continues until players from ${st.limit || 3} different classes solve it.</p><button id="dismissWin" type="button">RETURN TO TERMINAL</button></div>`;
+  $('#dismissWin').addEventListener('click', () => { w.hidden = true; stopRain(); });
 }
 function win(j) {
   solved = true;

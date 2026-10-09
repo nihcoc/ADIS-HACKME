@@ -173,7 +173,7 @@ app.post('/api/class', subLimit, (req, res) => {
   if (S.claims[c]) return res.status(409).json({ error: 'CLASS TAKEN' });
   S.claims[c] = req.pid; save(); res.json({ ok: true, cls: c });
 });
-// On request, a player sees the hottest and coldest of their own wrong guesses (5 requests each).
+// On request, a player sees the proximity of their latest wrong guess (5 requests each).
 app.post('/api/proximity', subLimit, (req, res) => {
   if (S.status !== 'running') return res.status(403).json({ error: 'EVENT NOT ACTIVE' });
   const gs = guesses.get(req.pid) || [], n = pxUsed.get(req.pid) || 0;
@@ -181,8 +181,8 @@ app.post('/api/proximity', subLimit, (req, res) => {
   if (n >= 5) return res.status(403).json({ error: 'NO PROXIMITY CHECKS LEFT', checksLeft: 0 });
   pxUsed.set(req.pid, n + 1);
   S.pxUsedByPlayer[req.pid] = n + 1; save();
-  const hot = gs.reduce((a, b) => b.s > a.s ? b : a), cold = gs.reduce((a, b) => b.s < a.s ? b : a), o = x => ({ guess: x.g, tier: tier(x.s), score: x.s });
-  res.json({ hot: o(hot), cold: o(cold), checksLeft: 4 - n });
+  const latest = gs[gs.length - 1];
+  res.json({ latest: { guess: latest.g, tier: tier(latest.s), score: latest.s }, checksLeft: 4 - n });
 });
 
 // ---- admin ----
