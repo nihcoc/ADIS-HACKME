@@ -105,7 +105,9 @@ sendPing(); setInterval(sendPing, 10000);
 
 // ---- fictional sites ----
 const img = (s, a = '') => `<img src="${esc(s)}" alt="${esc(a)}">`;
-const POST_ORDER = [1, 5, 3, 0, 2, 4, 6]; // shuffled display order; metadata stays with each photo
+const POST_ORDER = puz.grammie.posts
+  .map((post, index) => index)
+  .sort((a, b) => Date.parse(puz.grammie.posts[a].date) - Date.parse(puz.grammie.posts[b].date));
 const postImage = p => cls.match(/^12[A-G]$/) ? p.image.replace(/photo1\.jpg$/, 'photokes.jpg') : p.image;
 const ph = () => Object.assign(document.createElement('div'), { className: 'ph', textContent: '📷' });
 const cmts = p => p.comments && p.comments.length ? `<div class="cmts"><b>Comments (${p.comments.length})</b>${p.comments.map(c => `<p><b>${esc(c.user)}</b> ${esc(c.text)}<small>${esc(c.date)}</small></p>`).join('')}</div>` : '';
