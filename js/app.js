@@ -105,9 +105,9 @@ sendPing(); setInterval(sendPing, 10000);
 
 // ---- fictional sites ----
 const img = (s, a = '') => `<img src="${esc(s)}" alt="${esc(a)}">`;
-const POST_ORDER = puz.grammie.posts
+const postOrder = posts => posts
   .map((post, index) => index)
-  .sort((a, b) => Date.parse(puz.grammie.posts[a].date) - Date.parse(puz.grammie.posts[b].date));
+  .sort((a, b) => String(posts[a].date).localeCompare(String(posts[b].date)));
 const postImage = p => cls.match(/^12[A-G]$/) ? p.image.replace(/photo1\.jpg$/, 'photokes.jpg') : p.image;
 const ph = () => Object.assign(document.createElement('div'), { className: 'ph', textContent: '📷' });
 const cmts = p => p.comments && p.comments.length ? `<div class="cmts"><b>Comments (${p.comments.length})</b>${p.comments.map(c => `<p><b>${esc(c.user)}</b> ${esc(c.text)}<small>${esc(c.date)}</small></p>`).join('')}</div>` : '';
@@ -116,7 +116,7 @@ const SITES = {
     const g = puz.grammie;
     const bio = esc(g.bio).replace(/\n/g, '<br>').replace('@idk.dosa', '<span class="bio-link">@idk.dosa</span>');
     return `<div class="gh"><div class="av">${img(g.avatar)}</div><div><div class="gidentity"><h3>${esc(puz.person.name)}</h3><b>@${esc(g.username)}</b></div><p>${bio}</p><p><b>${g.followers}</b> followers &nbsp; <b>${g.following}</b> following</p></div></div>
-    <div class="grid">${POST_ORDER.map((i, rank) => `<button class="post" data-i="${i}" aria-label="Open post ${rank + 1}">${img(postImage(g.posts[i]))}</button>`).join('')}</div><div id="pd"></div>`;
+    <div class="grid">${postOrder(g.posts).map((i, rank) => `<button class="post" data-i="${i}" aria-label="Open post ${rank + 1}">${img(postImage(g.posts[i]))}</button>`).join('')}</div><div id="pd"></div>`;
   },
   linkout() {
     const l = puz.linkout, it = x => `<p><b>${esc(x.org)}</b>${x.title ? '<br>' + esc(x.title) : ''}<br><small>${esc(x.period)}</small></p>`;
@@ -125,8 +125,9 @@ const SITES = {
   },
   hooked() {
     const h = puz.hooked, ps = puz.grammie.posts;
-    return `<div class="hk">${img(postImage(ps[POST_ORDER[0]]))}<div class="in"><h3>${esc(h.name)}, ${h.age}</h3><p>📍 ${esc(h.location)} &nbsp; Born ${puz.person.born}</p><p><b>Looking for:</b> ${esc(h.lookingFor)}</p>
-    <p>${h.hobbies.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</p><div class="strip">${POST_ORDER.slice(1).map(i => img(postImage(ps[i]))).join('')}</div></div></div>`;
+    const order = postOrder(ps);
+    return `<div class="hk">${img(postImage(ps[order[0]]))}<div class="in"><h3>${esc(h.name)}, ${h.age}</h3><p>📍 ${esc(h.location)} &nbsp; Born ${puz.person.born}</p><p><b>Looking for:</b> ${esc(h.lookingFor)}</p>
+    <p>${h.hobbies.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</p><div class="strip">${order.slice(1).map(i => img(postImage(ps[i]))).join('')}</div></div></div>`;
   }
 };
 function site(n) {
