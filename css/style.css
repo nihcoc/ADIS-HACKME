@@ -95,10 +95,10 @@ header,main{position:relative;z-index:1}
 .credits-students .credit-name{max-width:none;margin:0}
 .credits-gap{height:400px}
 .credits-signoff{margin:14px 0;color:var(--g);font-size:16px;font-weight:600}
-.credits-creator{color:#fff;font-size:16px;font-weight:700}
+.credits-creator{color:#fff;font-size:24px;font-weight:700;line-height:1.35}
 @keyframes credits-crawl{from{transform:translateY(0)}to{transform:translateY(-50%)}}
 @media(max-width:800px){main{grid-template-columns:1fr!important}#term{position:static;height:60vh}}
-@media(max-width:800px){#win .end-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.2fr) minmax(180px,.8fr);width:86vw;height:80vh;padding:10px;gap:8px}.end-panel,.credits-panel{padding:10px}.credits-creator{font-size:20px}}
+@media(max-width:800px){#win .end-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.2fr) minmax(180px,.8fr);width:86vw;height:80vh;padding:10px;gap:8px}.end-panel,.credits-panel{padding:10px}.credits-creator{font-size:22px}}
 @media(max-width:560px){#commandList{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 @media(prefers-reduced-motion:reduce){.credits-viewport{overflow:auto;mask-image:none}.credits-copy+.credits-copy{display:none}}
